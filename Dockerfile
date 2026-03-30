@@ -1,5 +1,5 @@
-# Use official Python 3.10 slim image for minimal footprint
-FROM python:3.10-slim
+# Use official Python 3.11 slim image for minimal footprint
+FROM python:3.11-slim
 
 # Set environment variables natively to optimize python execution
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -25,4 +25,4 @@ COPY . .
 EXPOSE 8000
 
 # Specify how to run the application securely and scalably
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 4
