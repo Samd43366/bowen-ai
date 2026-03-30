@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+app/credentials/*.json
+frontend/node_modules/
+.dockerignore
+Dockerfile
+.git/
+.gitignore
+uploads/
+scripts/

@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: bowen-ai
+    runtime: docker
+    plan: free # Change to 'starter' or higher for production traffic
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      # You will add your other .env variables in the Render Dashboard
+    healthCheckPath: /health

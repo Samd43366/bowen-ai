@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+python-multipart
+pydantic-settings
+python-jose
+passlib
+bcrypt
+firebase-admin
+qdrant-client
+sentence-transformers
+groq
+pymupdf
+email-validator
+python-docx
+slowapi

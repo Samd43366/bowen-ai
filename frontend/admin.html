@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
+    <title>Bowen AI Admin Portal</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="style.css">
+    
+    <style>
+        .admin-dashboard { display: flex; height: 100vh; overflow: hidden; background: var(--bg-color); color: var(--text-color); }
+        .admin-sidebar { width: 260px; background: rgba(0, 0, 0, 0.4); border-right: 1px solid var(--border-color); padding: 1.5rem; display: flex; flex-direction: column; gap: 0.5rem; }
+        .admin-main { flex: 1; padding: 2rem; overflow-y: auto; }
+        .admin-nav-item { padding: 1rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 1rem; transition: 0.2s; color: var(--text-color); opacity: 0.8; font-weight: 500;}
+        .admin-nav-item:hover { background: rgba(255, 255, 255, 0.05); opacity: 1;}
+        .admin-nav-item.active { background: var(--primary); color: white; opacity: 1;}
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;}
+        .stat-card { background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); padding: 1.5rem; border-radius: 12px; }
+        .stat-card h3 { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem;}
+        .stat-card .value { font-size: 2rem; font-weight: 700; color: var(--primary); }
+        .admin-table { width: 100%; border-collapse: collapse; margin-top: 1rem;}
+        .admin-table th, .admin-table td { padding: 1rem; text-align: left; border-bottom: 1px solid var(--border-color); color: var(--text-color); }
+        .admin-table th { color: var(--text-muted); font-size: 0.9rem; font-weight: 500;}
+        .badge { padding: 0.3rem 0.6rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; }
+        .badge-success { background: rgba(34, 197, 94, 0.2); color: #4ade80;}
+        .badge-pending { background: rgba(245, 158, 11, 0.2); color: #fbbf24;}
+        .badge-primary { background: rgba(99, 102, 241, 0.2); color: #818cf8;}
+        .action-btn { background: none; border: none; font-size: 1.1rem; cursor: pointer; padding: 0.5rem; margin-right: 0.5rem; color: var(--text-muted); transition: 0.2s;}
+        .action-btn:hover { color: var(--text-color); }
+        .btn-approve { color: #4ade80; }
+        .btn-approve:hover { color: #22c55e; }
+        .btn-danger { color: #f87171; }
+        .btn-danger:hover { color: #ef4444; }
+        .otp-locked { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 1rem; text-align: center; }
+        
+        .upload-zone { border: 2px dashed var(--border-color); border-radius: 12px; padding: 3rem; text-align: center; cursor: pointer; margin-bottom: 2rem; transition: 0.2s; background: rgba(255,255,255,0.02);}
+        .upload-zone:hover { border-color: var(--primary); background: rgba(99, 102, 241, 0.05);}
+        .upload-zone i { font-size: 3rem; color: var(--primary); margin-bottom: 1rem;}
+        
+        .insight-card { background: rgba(0,0,0,0.2); padding: 2rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); }
+        .insight-card h3 { color: var(--primary); margin-top: 0; display: flex; align-items: center; gap: 0.75rem; font-size: 1.1rem; }
+        .insight-card p { line-height: 1.6; color: var(--text-color); opacity: 0.9; margin-bottom: 0; font-size: 1.05rem; }
+        .insight-highlight { color: var(--primary); font-weight: 700; }
+        .insight-status { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; margin-left: auto; }
+
+        /* Responsive Sidebar Styles */
+        .admin-dashboard { display: flex; height: 100vh; overflow: hidden; background: var(--bg-color); color: var(--text-color); position: relative; }
+        .admin-sidebar { 
+            width: 260px; background: rgba(0, 0, 0, 0.4); border-right: 1px solid var(--border-color); 
+            padding: 1.5rem; display: flex; flex-direction: column; gap: 0.5rem; 
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 100;
+        }
+        .admin-sidebar-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 95; opacity: 0; pointer-events: none; transition: 0.3s;
+        }
+        .admin-sidebar-overlay.active { opacity: 1; pointer-events: auto; }
+        
+        .admin-topbar {
+            display: none; padding: 1rem 1.5rem; align-items: center; justify-content: space-between;
+            background: rgba(0,0,0,0.2); border-bottom: 1px solid var(--border-color); z-index: 90;
+        }
+        .admin-hamburger {
+            background: none; border: none; font-size: 1.5rem; color: var(--text-main); cursor: pointer; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 8px; transition: 0.2s;
+        }
+        .admin-hamburger:hover { background: rgba(255,255,255,0.1); }
+        
+        @media (max-width: 768px) {
+            .admin-sidebar {
+                position: fixed; top: 0; bottom: 0; left: 0; transform: translateX(-100%);
+            }
+            .admin-sidebar.open { transform: translateX(0); box-shadow: 10px 0 30px rgba(0,0,0,0.5); }
+            .admin-topbar { display: flex; }
+            .admin-main { padding: 1rem; }
+            .stat-grid { grid-template-columns: 1fr; }
+        }
+
+        /* Light Mode Overrides */
+        .light-theme {
+            --bg-color: #f3f4f6;
+            --text-color: #1f2937;
+            --text-muted: #4b5563;
+            --border-color: #d1d5db;
+        }
+        .light-theme .admin-sidebar { background: #ffffff; }
+        .light-theme .admin-topbar { background: #ffffff; }
+        .light-theme .admin-hamburger { color: var(--text-color); }
+        .light-theme .admin-hamburger:hover { background: rgba(0,0,0,0.05); }
+        .light-theme .stat-card, .light-theme .admin-table th, .light-theme .admin-table td { background: #ffffff; color: var(--text-color); }
+        .light-theme .admin-nav-item:hover { background: rgba(0, 0, 0, 0.05); }
+        .light-theme .admin-nav-item { color: var(--text-color); }
+        .light-theme .admin-nav-item.active { background: var(--primary); color: white; }
+    </style>
+</head>
+<body class="dark-mode"> <!-- Force dark mode for admin by default, but toggleable wrapper -->
+    <div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+function Input({ icon, type, placeholder, name, value, onChange }) {
+    return (
+        <div className="input-group">
+            <input className="input-field" type={type} placeholder={placeholder} name={name} value={value} onChange={onChange} required />
+            <i className={`fas ${icon} input-icon`}></i>
+        </div>
+    );
+}
+
+function OTPPopup({ email, onVerify, onResend, onCancel }) {
+    const [otp, setOtp] = useState(['', '', '', '', '', '']);
+    const [timer, setTimer] = useState(60);
+    const inputs = useRef([]);
+
+    useEffect(() => {
+        if (timer <= 0) return;
+        const interval = setInterval(() => {
+            setTimer(prev => prev - 1);
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [timer]);
+
+    const handleChange = (e, index) => {
+        const val = e.target.value;
+        if (isNaN(val)) return;
+
+        const newOtp = [...otp];
+        newOtp[index] = val.substring(val.length - 1);
+        setOtp(newOtp);
+
+        if (val && index < 5) {
+            inputs.current[index + 1].focus();
+        }
+    };
+
+    const handleKeyDown = (e, index) => {
+        if (e.key === 'Backspace' && !otp[index] && index > 0) {
+            inputs.current[index - 1].focus();
+        }
+    };
+
+    const handleVerifyCode = () => {
+        const code = otp.join('');
+        if (code.length === 6) {
+            onVerify(code);
+        } else {
+            alert('Please enter a 6-digit code');
+        }
+    };
+
+    const handleResend = () => {
+        if (timer > 0) return;
+        setTimer(60);
+        onResend();
+    };
+
+    return (
+        <div className="overlay" style={{ animation: 'fadeIn 0.3s forwards', zIndex: 9999 }}>
+            <div className="otp-popup" style={{ background: 'rgba(15, 23, 42, 0.95)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                <i className="fas fa-shield-halved otp-icon"></i>
+                <h3>Authenticate OTP</h3>
+                <p>We've sent a 6-digit verification code to <br /><strong>{email || 'your email'}</strong></p>
+                
+                <div className="otp-inputs">
+                    {otp.map((digit, index) => (
+                        <input
+                            key={index} type="text" maxLength="1" className="otp-digit"
+                            value={digit} onChange={(e) => handleChange(e, index)} onKeyDown={(e) => handleKeyDown(e, index)}
+                            ref={(el) => (inputs.current[index] = el)}
+                        />
+                    ))}
+                </div>
+
+                <div style={{ marginBottom: '1.5rem', fontWeight: 600, color: timer > 0 ? 'var(--primary)' : '#f87171' }}>
+                    {timer > 0 ? (
+                        <span><i className="fas fa-clock"></i> Resend code in {timer}s</span>
+                    ) : (
+                        <span><i className="fas fa-check-circle"></i> You can resend now</span>
+                    )}
+                </div>
+                
+                <button className="btn btn-primary" onClick={handleVerifyCode} style={{ padding: '1.2rem', fontSize: '1.1rem' }}>
+                    <i className="fas fa-check-circle"></i> Verify Access
+                </button>
+                
+                <button 
+                    className="btn-resend" 
+                    onClick={handleResend} 
+                    style={{ opacity: timer > 0 ? 0.5 : 1, cursor: timer > 0 ? 'not-allowed' : 'pointer' }}
+                    disabled={timer > 0}
+                >
+                    Didn't receive it? Resend OTP
+                </button>
+
+                <div style={{ marginTop: '1.5rem', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '0.8rem' }} onClick={onCancel}>
+                    <i className="fas fa-arrow-left"></i> Back to sign in
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ---------------------------
+// ADMIN LOGIN SCREEN
+// ---------------------------
+function AdminAuthApp({ onLogin }) {
+    const [view, setView] = useState('login');
+    const [showOTP, setShowOTP] = useState(false);
+    const [formData, setFormData] = useState({ name: '', email: '', password: '', secret: '', otp: '', newPassword: '' });
+    const [loading, setLoading] = useState(false);
+    const [alert, setAlert] = useState({ text: '', type: '' });
+
+    const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+
+    const handleLoginSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true); setAlert({text: '', type: ''});
+        try {
+            const res = await fetch('/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: formData.email, password: formData.password })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || 'Login failed');
+            
+            localStorage.setItem('admin_token', data.access_token);
+            localStorage.setItem('bowen_token', data.access_token); // Sync for Chatbot access
+            setAlert({ text: data.message || 'Access Granted. Entering Portal...', type: 'success' });
+            setTimeout(() => onLogin(data.access_token), 1500);
+        } catch (err) {
+            setAlert({ text: err.message, type: 'error' });
+        } finally { setLoading(false); }
+    };
+
+    const handleRegisterSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true); setAlert({text: '', type: ''});
+        try {
+            const res = await fetch('/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    full_name: formData.name,
+                    email: formData.email,
+                    password: formData.password,
+                    role: "admin",
+                    admin_secret: formData.secret
+                })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || 'Registration failed');
+            
+            setAlert({ text: "Registration received! Check your email for the OTP Verification Code.", type: 'success' });
+            setShowOTP(true);
+        } catch (err) {
+            setAlert({ text: err.message, type: 'error' });
+        } finally { setLoading(false); }
+    };
+
+    const handleVerifyOTP = async (code) => {
+        setLoading(true);
+        try {
+            const res = await fetch('/auth/verify-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: formData.email,
+                    otp_code: code
+                })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || 'Verification failed');
+            
+            setShowOTP(false);
+            setAlert({ text: 'Email verified! Account is now PENDING Superadmin approval. You cannot log in yet.', type: 'success' });
+            setTimeout(() => setView('login'), 5000);
+        } catch (err) {
+            window.alert(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleForgotSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true); setAlert({text: '', type: ''});
+        try {
+            const res = await fetch('/auth/forgot-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: formData.email })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || 'Request failed');
+            setAlert({ text: data.message, type: 'success' });
+            setView('reset');
+        } catch (err) {
+            setAlert({ text: err.message, type: 'error' });
+        } finally { setLoading(false); }
+    };
+
+    const handleResetSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true); setAlert({text: '', type: ''});
+        try {
+            const res = await fetch('/auth/reset-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    email: formData.email, 
+                    otp_code: formData.otp, 
+                    new_password: formData.newPassword 
+                })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || 'Reset failed');
+            setAlert({ text: "Password updated! You can now log in.", type: 'success' });
+            setTimeout(() => setView('login'), 2000);
+        } catch (err) {
+            setAlert({ text: err.message, type: 'error' });
+        } finally { setLoading(false); }
+    };
+
+    return (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+            <div className="glass-card" style={{ width: '400px' }}>
+                <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                    <i className="fas fa-shield-halved" style={{ fontSize: '3rem', color: 'var(--primary)', marginBottom: '1rem' }}></i>
+                    <h2>Supreme Command</h2>
+                    <p className="text-muted">High-Level Administrator Access</p>
+                </div>
+                
+                {alert.text && <div style={{ padding: '1rem', background: alert.type === 'error' ? '#450a0a' : '#052e16', color: alert.type === 'error' ? '#fca5a5' : '#86efac', borderRadius: '8px', marginBottom: '1.5rem', border: `1px solid ${alert.type==='error'?'#ef4444':'#22c55e'}` }}>{alert.text}</div>}
+                
+                {view === 'login' && (
+                    <form onSubmit={handleLoginSubmit}>
+                        <Input icon="fa-envelope" type="email" placeholder="Admin Email" name="email" value={formData.email} onChange={handleChange} />
+                        <Input icon="fa-lock" type="password" placeholder="Passphrase" name="password" value={formData.password} onChange={handleChange} />
+                        <div style={{ textAlign: 'right', marginBottom: '1rem' }}>
+                            <span style={{ fontSize: '0.8rem', color: 'var(--primary)', cursor: 'pointer' }} onClick={() => setView('forgot')}>Forgot Password?</span>
+                        </div>
+                        <button className="btn btn-primary" style={{ width: '100%', marginTop: '1rem' }} disabled={loading}>
+                            {loading ? <i className="fas fa-circle-notch fa-spin"></i> : <i className="fas fa-unlock"></i>} {loading ? 'Authenticating...' : 'Authorize Interface'}
+                        </button>
+                    </form>
+                )}
+                
+                {view === 'register' && (
+                    <form onSubmit={handleRegisterSubmit}>
+                        <Input icon="fa-id-badge" type="text" placeholder="Full Name" name="name" value={formData.name} onChange={handleChange} />
+                        <Input icon="fa-envelope" type="email" placeholder="Email Address" name="email" value={formData.email} onChange={handleChange} />
+                        <Input icon="fa-lock" type="password" placeholder="Password" name="password" value={formData.password} onChange={handleChange} />
+                        <Input icon="fa-key" type="text" placeholder="Admin Secret Key" name="secret" value={formData.secret} onChange={handleChange} />
+                        <button className="btn btn-primary" style={{ width: '100%', marginTop: '1rem' }} disabled={loading}>
+                            {loading ? 'Submitting...' : 'Request Clearance'}
+                        </button>
+                    </form>
+                )}
+
+                {view === 'forgot' && (
+                    <form onSubmit={handleForgotSubmit}>
+                        <p style={{ fontSize: '0.9rem', marginBottom: '1.5rem', opacity: 0.8 }}>Enter your email to receive a password reset code.</p>
+                        <Input icon="fa-envelope" type="email" placeholder="Admin Email" name="email" value={formData.email} onChange={handleChange} />
+                        <button className="btn btn-primary" style={{ width: '100%', marginTop: '1rem' }} disabled={loading}>
+                            {loading ? 'Sending...' : 'Send Reset Code'}
+                        </button>
+                    </form>
+                )}
+
+                {view === 'reset' && (
+                    <form onSubmit={handleResetSubmit}>
+                        <p style={{ fontSize: '0.9rem', marginBottom: '1.5rem', opacity: 0.8 }}>Check your email for the 6-digit code.</p>
+                        <Input icon="fa-envelope" type="email" placeholder="Verify Email" name="email" value={formData.email} onChange={handleChange} />
+                        <Input icon="fa-shield-halved" type="text" placeholder="6-Digit Code" name="otp" value={formData.otp} onChange={handleChange} />
+                        <Input icon="fa-lock" type="password" placeholder="New Passphrase" name="newPassword" value={formData.newPassword} onChange={handleChange} />
+                        <button className="btn btn-primary" style={{ width: '100%', marginTop: '1rem' }} disabled={loading}>
+                            {loading ? 'Resetting...' : 'Update Password'}
+                        </button>
+                    </form>
+                )}
+
+                <div style={{ marginTop: '2rem', textAlign: 'center', fontSize: '0.85rem' }}>
+                    {view === 'login' && (
+                        <span style={{ color: 'var(--primary)', cursor: 'pointer' }} onClick={() => setView('register')}>Request Admin Clearance <i className="fas fa-arrow-right"></i></span>
+                    )}
+                    {(view === 'register' || view === 'forgot' || view === 'reset') && (
+                        <span style={{ color: 'var(--primary)', cursor: 'pointer' }} onClick={() => setView('login')}><i className="fas fa-arrow-left"></i> Back to Auth</span>
+                    )}
+                    <div style={{ marginTop: '1.5rem' }}>
+                        <a href="/" style={{ color: 'var(--text-muted)' }}><i className="fas fa-home"></i> Return to Site</a>
+                    </div>
+                </div>
+            </div>
+            {/* OTP Popup Overlay */}
+            {showOTP && (
+                <OTPPopup 
+                    email={formData.email}
+                    onVerify={handleVerifyOTP}
+                    onResend={async () => {
+                        try {
+                            const res = await fetch('/auth/resend-otp', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ email: formData.email })
+                            });
+                            const data = await res.json();
+                            if (!res.ok) throw new Error(data.detail || 'Resend failed');
+                            window.alert(data.message);
+                        } catch (err) {
+                            window.alert(err.message);
+                        }
+                    }}
+                    onCancel={() => setShowOTP(false)}
+                />
+            )}
+        </div>
+    );
+}
+
+// ---------------------------
+// ADMIN DASHBOARD TABS
+// ---------------------------
+
+function UsersTab({ token, isSuper }) {
+    const [users, setUsers] = useState([]);
+    const [refresh, setRefresh] = useState(0);
+
+    useEffect(() => {
+        if (!isSuper) return;
+        fetch('/admin/users', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        }).then(r => r.json()).then(d => setUsers(d.users || []));
+    }, [token, refresh, isSuper]);
+
+    if (!isSuper) return <div style={{marginTop: '4rem', textAlign: 'center'}}><i className="fas fa-lock" style={{fontSize:'3rem', color:'#fca5a5', marginBottom:'1rem'}}></i><h2>Superadmin Required</h2><p>You do not have clearance to view or manage users.</p></div>;
+
+    const handleVerify = async (email) => {
+        if(confirm(`Grant Admin clearance to ${email}?`)) {
+            await fetch(`/admin/users/${email}/verify`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` } });
+            setRefresh(r=>r+1);
+        }
+    };
+
+    const handleDelete = async (email) => {
+        if(confirm(`WARNING: Permanently eradicate ${email}?`)) {
+            await fetch(`/admin/users/${email}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+            setRefresh(r=>r+1);
+        }
+    };
+
+    return (
+        <div>
+            <h2>User Management</h2>
+            <div style={{ background: 'rgba(0,0,0,0.2)', padding:'1rem', borderRadius: '12px', overflowX: 'auto' }}>
+                <table className="admin-table">
+                    <thead><tr><th>EMAIL</th><th>NAME</th><th>ROLE</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
+                    <tbody>
+                        {users.map(u => (
+                            <tr key={u.email}>
+                                <td>{u.email}</td>
+                                <td>{u.full_name}</td>
+                                <td>
+                                    <span className={`badge ${u.role==='superadmin'?'badge-primary':u.role==='admin'?'badge-pending':'badge-success'}`}>
+                                        {u.role.toUpperCase()}
+                                    </span>
+                                </td>
+                                <td>
+                                    {(u.is_approved || u.role==='user') ? <span style={{color:'#4ade80'}}><i className="fas fa-check-circle"></i> Active</span> : <span style={{color:'#fbbf24'}}><i className="fas fa-clock"></i> Pending</span>}
+                                </td>
+                                <td>
+                                    {u.role === 'admin' && !u.is_approved && (
+                                        <button className="action-btn btn-approve" onClick={() => handleVerify(u.email)} title="Approve Admin Clearance"><i className="fas fa-check"></i></button>
+                                    )}
+                                    {u.role !== 'superadmin' && (
+                                        <button className="action-btn btn-danger" onClick={() => handleDelete(u.email)} title="Eradicate User"><i className="fas fa-trash"></i></button>
+                                    )}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+}
+
+function DocumentsTab({ token, docToken }) {
+    const fileInputRef = useRef();
+    const [docs, setDocs] = useState([]);
+    const [uploading, setUploading] = useState(false);
+    const [refresh, setRefresh] = useState(0);
+
+    const [categories, setCategories] = useState(['Uncategorized']);
+    const [selectedCategory, setSelectedCategory] = useState('Uncategorized');
+    const [newCategoryName, setNewCategoryName] = useState('');
+    const [categoryFilter, setCategoryFilter] = useState('All');
+
+    useEffect(() => {
+        if (!token) return;
+        fetch('/admin/categories', { headers: { 'Authorization': `Bearer ${token}` }})
+            .then(r => r.json()).then(d => {
+                if(d.categories) setCategories(d.categories);
+            }).catch(e => console.error(e));
+    }, [token, refresh]);
+
+    useEffect(() => {
+        if (!docToken) return;
+        let interval = setInterval(() => {
+            fetch('/admin/documents', {
+                headers: { 'Authorization': `Bearer ${docToken}` }
+            }).then(r => r.json()).then(d => setDocs(d.documents || []));
+        }, 3000); // Polling every 3s to show vector parsing progress
+        
+        // Initial fetch
+        fetch('/admin/documents', { headers: { 'Authorization': `Bearer ${docToken}` }}).then(r=>r.json()).then(d => setDocs(d.documents || []));
+        
+        return () => clearInterval(interval);
+    }, [docToken, refresh]);
+
+    const handleFileSelect = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        setUploading(true);
+        const form = new FormData();
+        form.append('file', file);
+        form.append('category', selectedCategory);
+        try {
+            await fetch('/admin/upload', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${docToken}` },
+                body: form
+            });
+            setRefresh(r=>r+1);
+        } catch(err) { alert(err.message); } finally { setUploading(false); }
+    };
+
+    const handleDelete = async (filename) => {
+        if(confirm(`Eradicate document vector embeddings for ${filename}?`)) {
+            await fetch(`/admin/documents/${filename}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${docToken}` }
+            });
+            setRefresh(r=>r+1);
+        }
+    };
+
+    const handleAddCategory = async () => {
+        if (!newCategoryName.trim()) return;
+        try {
+            const res = await fetch('/admin/categories', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ name: newCategoryName })
+            });
+            if(!res.ok) throw new Error("Failed to create category");
+            setNewCategoryName('');
+            setRefresh(r=>r+1);
+        } catch(e) { alert(e.message); }
+    };
+
+    const handleDeleteCategory = async (name) => {
+        if(!confirm(`Delete category "${name}"? This will fail if documents still utilize it.`)) return;
+        try {
+            const res = await fetch(`/admin/categories/${name}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if(!res.ok) {
+                const data = await res.json();
+                throw new Error(data.detail || "Failed to delete category");
+            }
+            if(selectedCategory === name) setSelectedCategory('Uncategorized');
+            if(categoryFilter === name) setCategoryFilter('All');
+            setRefresh(r=>r+1);
+        } catch(e) { alert(e.message); }
+    };
+
+    const displayDocs = categoryFilter === 'All' ? docs : docs.filter(d => d.category === categoryFilter);
+
+    return (
+        <div>
+            <h2>Vector Document Knowledge Base</h2>
+            
+            {/* Category Management */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1.5rem', marginBottom: '2rem' }}>
+                <h3 style={{ marginTop: 0, marginBottom: '1rem', color: 'var(--text-muted)' }}><i className="fas fa-tags"></i> Manage Categories</h3>
+                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <input 
+                        type="text" 
+                        placeholder="New Category Name (e.g. Admissions 2026)" 
+                        value={newCategoryName} 
+                        onChange={e => setNewCategoryName(e.target.value)}
+                        style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid var(--border-color)', color: 'white', padding: '0.6rem', borderRadius: '4px', minWidth: '250px' }}
+                    />
+                    <button className="btn btn-primary" onClick={handleAddCategory}><i className="fas fa-plus"></i> Add Category</button>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '1rem' }}>
+                    {categories.map(c => (
+                        <div key={c} style={{ background: 'rgba(99, 102, 241, 0.1)', color: '#818cf8', padding: '0.4rem 0.8rem', borderRadius: '20px', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid rgba(99, 102, 241, 0.3)' }}>
+                            {c} 
+                            {c !== 'Uncategorized' && <i className="fas fa-times" style={{cursor: 'pointer', opacity: 0.7}} onClick={() => handleDeleteCategory(c)}></i>}
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <strong style={{color: 'var(--text-muted)'}}>Upload to:</strong>
+                <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)} style={{background: 'rgba(255,255,255,0.1)', color: 'white', padding: '0.6rem', border: '1px solid var(--border-color)', borderRadius: '4px', width: '250px'}}>
+                    {categories.map(c => <option key={c} value={c} style={{color: 'black'}}>{c}</option>)}
+                </select>
+            </div>
+
+            <div className="upload-zone" onClick={() => fileInputRef.current?.click()}>
+                <i className={`fas ${uploading ? 'fa-circle-notch fa-spin' : 'fa-cloud-upload-alt'}`}></i>
+                <h3>{uploading ? 'Processing & Embedding...' : 'Select PDF or DOCX to upload to Qdrant'}</h3>
+                <p className="text-muted">File will be grouped under: <strong>{selectedCategory}</strong></p>
+                <input type="file" ref={fileInputRef} style={{display:'none'}} accept=".pdf,.doc,.docx" onChange={handleFileSelect} />
+            </div>
+
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1rem'}}>
+                <h3 style={{margin: 0}}>Knowledge Files</h3>
+                <div>
+                    <span style={{color: 'var(--text-muted)', marginRight: '0.5rem'}}>Filter by Category:</span>
+                    <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} style={{background: 'transparent', color: 'var(--primary)', padding: '0.4rem', border: '1px solid var(--primary)', borderRadius: '4px'}}>
+                        <option value="All" style={{color: 'black'}}>All Categories</option>
+                        {categories.map(c => <option key={c} value={c} style={{color: 'black'}}>{c}</option>)}
+                    </select>
+                </div>
+            </div>
+
+            <div style={{ background: 'rgba(0,0,0,0.2)', padding:'1rem', borderRadius: '12px', overflowX: 'auto' }}>
+                <table className="admin-table">
+                    <thead><tr><th>FILENAME</th><th>CATEGORY</th><th>STATUS</th><th>VECTORS INDEXED</th><th>ACTIONS</th></tr></thead>
+                    <tbody>
+                        {displayDocs.length === 0 ? <tr><td colSpan="5" style={{textAlign:'center', padding:'2rem', opacity:0.5}}>No knowledge documents yet.</td></tr> : displayDocs.map(d => (
+                            <tr key={d.id}>
+                                <td style={{fontWeight:500}}>{d.filename}</td>
+                                <td><span style={{ background: 'rgba(255,255,255,0.1)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.85rem' }}>{d.category || 'Uncategorized'}</span></td>
+                                <td>
+                                    {d.status === 'processing' ? <span style={{color: '#fbbf24'}}><i className="fas fa-spinner fa-spin"></i> Embedding...</span> : <span style={{color: '#4ade80'}}><i className="fas fa-check-circle"></i> Active</span>}
+                                </td>
+                                <td style={{fontFamily: 'monospace'}}>{d.chunks_indexed || 0} chunks</td>
+                                <td>
+                                    <button className="action-btn btn-danger" onClick={() => handleDelete(d.filename)} title="Remove Document from Knowledge Base"><i className="fas fa-trash"></i></button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+}
+
+function KnowledgeGapsTab({ token }) {
+    const [gaps, setGaps] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    const fetchGaps = () => {
+        setLoading(true);
+        fetch('/admin/unanswered', { headers: { 'Authorization': `Bearer ${token}` }})
+            .then(r => r.json())
+            .then(d => { setGaps(d.unanswered || []); setLoading(false); })
+            .catch(e => { console.error(e); setLoading(false); });
+    };
+
+    useEffect(() => { fetchGaps(); }, [token]);
+
+    const handleResolve = async (id) => {
+        if(!confirm("Mark this gap as resolved? It will be removed from the list.")) return;
+        try {
+            await fetch(`/admin/unanswered/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }});
+            fetchGaps();
+        } catch(e) { alert(e.message); }
+    };
+
+    const groupedGaps = gaps.reduce((acc, gap) => {
+        const cat = gap.category || 'Uncategorized';
+        if (!acc[cat]) acc[cat] = [];
+        acc[cat].push(gap);
+        return acc;
+    }, {});
+
+    return (
+        <div>
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1rem'}}>
+                <h2><i className="fas fa-lightbulb" style={{color:'var(--primary)'}}></i> Knowledge Gaps</h2>
+                <button className="btn btn-primary" onClick={fetchGaps}><i className="fas fa-sync"></i> Refresh List</button>
+            </div>
+            <p className="text-muted" style={{marginBottom:'2rem'}}>These are questions the AI couldn't answer. Categorized to help you identify what knowledge needs to be uploaded.</p>
+            
+            {loading ? <div style={{textAlign:'center', padding:'3rem'}}><i className="fas fa-circle-notch fa-spin fa-2x"></i></div> : (
+                Object.keys(groupedGaps).length === 0 ? (
+                    <div className="insight-card" style={{textAlign:'center', padding:'4rem', opacity:0.6}}>
+                        <i className="fas fa-check-circle fa-3x" style={{marginBottom:'1rem', color:'#4ade80'}}></i>
+                        <h3>All clear!</h3>
+                        <p>No unanswered questions reported recently.</p>
+                    </div>
+                ) : (
+                    Object.keys(groupedGaps).map(cat => (
+                        <div key={cat} style={{marginBottom:'2.5rem'}}>
+                            <h3 style={{borderBottom:'1px solid var(--border-color)', paddingBottom:'0.5rem', marginBottom:'1rem', display:'flex', alignItems:'center', gap:'0.75rem'}}>
+                                <i className="fas fa-folder-open" style={{color:'var(--primary)', fontSize:'0.9rem'}}></i> {cat}
+                                <span style={{fontSize:'0.8rem', background:'rgba(255,255,255,0.1)', padding:'0.2rem 0.6rem', borderRadius:'20px'}}>{groupedGaps[cat].length} items</span>
+                            </h3>
+                            <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(300px, 1fr))', gap:'1rem'}}>
+                                {groupedGaps[cat].map(gap => (
+                                    <div key={gap.id} className="insight-card" style={{padding:'1.2rem', display:'flex', flexDirection:'column', gap:'0.8rem'}}>
+                                        <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start'}}>
+                                            <span style={{fontSize:'0.7rem', opacity:0.5, textTransform:'uppercase', letterSpacing:'1px'}}>{new Date(gap.last_asked).toLocaleDateString()}</span>
+                                            <span style={{fontSize:'0.75rem', color:'var(--primary)', fontWeight:'bold'}}>Asked {gap.count}x</span>
+                                        </div>
+                                        <p style={{margin:0, fontSize:'0.95rem', fontWeight:500, flex:1}}>{gap.question}</p>
+                                        <button className="btn-approve action-btn" onClick={() => handleResolve(gap.id)} style={{fontSize:'0.85rem', marginTop:'0.5rem', alignSelf:'flex-end'}}>
+                                            <i className="fas fa-check-double"></i> Mark Resolved
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ))
+                )
+            )}
+        </div>
+    );
+}
+
+// ---------------------------
+// THE MAIN ADMIN DASHBOARD
+// ---------------------------
+function AdminDashboard({ user, token, onLogout }) {
+    const isSuper = user.role === 'superadmin';
+    const [tab, setTab] = useState(isSuper ? 'overview' : 'knowledge-gaps');
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    
+    // Document Step-Up Auth States
+    const [docToken, setDocToken] = useState(null);
+    const [showOTP, setShowOTP] = useState(false);
+    const [otp, setOtp] = useState('');
+    const [otpLoading, setOtpLoading] = useState(false);
+    
+    // Stats State
+    const [stats, setStats] = useState({});
+    const [logs, setLogs] = useState([]);
+    const [analytics, setAnalytics] = useState(null);
+    const [selectedMonth, setSelectedMonth] = useState('');
+    const [pendingUsers, setPendingUsers] = useState([]);
+    const [lightMode, setLightMode] = useState(false);
+
+    useEffect(() => {
+        if (isSuper) {
+            fetch('/admin/stats', { headers: {'Authorization': `Bearer ${token}`} })
+                .then(r=>r.json()).then(d=>setStats(d));
+            fetch('/admin/logs', { headers: {'Authorization': `Bearer ${token}`} })
+                .then(r=>r.json()).then(d=>setLogs(d.logs));
+            // Fetch Pending Users explicitly for Overview alerts
+            fetch('/admin/users', { headers: {'Authorization': `Bearer ${token}`} })
+                .then(r=>r.json()).then(d=>{
+                    if(d && d.users) {
+                        setPendingUsers(d.users.filter(u => u.role === 'admin' && !u.is_approved));
+                    }
+                });
+            // Fetch Analytics (All history)
+            fetch('/admin/analytics', { headers: {'Authorization': `Bearer ${token}`} })
+                .then(r=>{
+                    if(r.ok) return r.json();
+                    return null;
+                }).then(d=>{
+                    if(d && d.monthly_data) {
+                        setAnalytics(d.monthly_data);
+                        const keys = Object.keys(d.monthly_data);
+                        if(keys.length > 0) setSelectedMonth(keys[0]); // Select latest by default
+                    }
+                });
+        }
+    }, [isSuper, token]);
+
+    // Chart logic removed in favor of Word Representation
+
+
+    const requestDocOpt = async () => {
+        setOtpLoading(true);
+        try {
+            const res = await fetch('/auth/request-doc-otp', {
+                method: 'POST', headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if(res.ok) setShowOTP(true);
+            else alert("Failed to request OTP");
+        } finally { setOtpLoading(false); }
+    };
+
+    const verifyDocOtp = async (code) => {
+        setOtpLoading(true);
+        try {
+            const res = await fetch('/auth/verify-doc-otp', {
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ email: user.email, otp_code: code })
+            });
+            const data = await res.json();
+            if(res.ok) {
+                setDocToken(data.access_token);
+                setShowOTP(false);
+            } else alert(data.detail || "Invalid OTP");
+        } finally { setOtpLoading(false); }
+    };
+
+    return (
+        <div className={`admin-dashboard ${lightMode ? 'light-theme' : ''}`}>
+            
+            {/* Sidebar Overlay for Mobile */}
+            <div className={`admin-sidebar-overlay ${isSidebarOpen ? 'active' : ''}`} onClick={() => setIsSidebarOpen(false)}></div>
+            
+            {/* Nav */}
+            <div className={`admin-sidebar ${isSidebarOpen ? 'open' : ''}`}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                    <h2 style={{ color: 'var(--primary)', fontWeight: 700, margin: 0 }}><i className="fas fa-fingerprint"></i> Bowen Admin</h2>
+                    <button className="admin-hamburger" style={{ display: window.innerWidth <= 768 ? 'flex' : 'none' }} onClick={() => setIsSidebarOpen(false)}>
+                        <i className="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                {isSuper && <div className={`admin-nav-item ${tab==='overview'?'active':''}`} onClick={()=>{setTab('overview'); setIsSidebarOpen(false);}}><i className="fas fa-chart-pie"></i> System Overview</div>}
+                
+                <div className={`admin-nav-item ${tab==='knowledge-gaps'?'active':''}`} onClick={()=>{setTab('knowledge-gaps'); setIsSidebarOpen(false);}}><i className="fas fa-lightbulb"></i> Knowledge Gaps</div>
+
+                <div className={`admin-nav-item ${tab==='documents'?'active':''}`} onClick={()=>{setTab('documents'); setIsSidebarOpen(false);}}><i className="fas fa-database"></i> Vector Documents</div>
+                
+                {isSuper && <div className={`admin-nav-item ${tab==='users'?'active':''}`} onClick={()=>{setTab('users'); setIsSidebarOpen(false);}}>
+                    <i className="fas fa-users-cog"></i> Access Control 
+                    {pendingUsers.length > 0 && <span style={{background:'#ef4444', color:'white', borderRadius:'50%', width:'20px', height:'20px', display:'inline-flex', alignItems:'center', justifyContent:'center', fontSize:'0.7rem', marginLeft:'auto'}}>{pendingUsers.length}</span>}
+                </div>}
+                
+                {isSuper && <div className={`admin-nav-item ${tab==='logs'?'active':''}`} onClick={()=>{setTab('logs'); setIsSidebarOpen(false);}}><i className="fas fa-history"></i> Audit Logs</div>}
+                
+                <div className="admin-nav-item" onClick={()=>setLightMode(!lightMode)} style={{marginTop: 'auto', background: 'rgba(255,255,255,0.1)'}}>
+                    <i className={`fas ${lightMode ? 'fa-moon' : 'fa-sun'}`}></i> {lightMode ? 'Dark Theme' : 'Light Theme'}
+                </div>
+                
+                <div className="admin-nav-item" onClick={()=>window.location.href='/'} style={{marginTop: '0.5rem', background: 'rgba(255,255,255,0.1)'}}><i className="fas fa-comment-dots"></i> Go to Chatbot UI</div>
+                
+                <div className="admin-nav-item" onClick={onLogout} style={{color: '#f87171', marginTop: '0.5rem'}}><i className="fas fa-door-open"></i> Terminate Session</div>
+            </div>
+
+            {/* Main Content Area */}
+            <div className="admin-main">
+                {/* Topbar for Mobile */}
+                <div className="admin-topbar">
+                    <h2 style={{ color: 'var(--primary)', fontWeight: 700, margin: 0, fontSize: '1.25rem' }}><i className="fas fa-fingerprint"></i> Admin Portal</h2>
+                    <button className="admin-hamburger" onClick={() => setIsSidebarOpen(true)}>
+                        <i className="fas fa-bars"></i>
+                    </button>
+                </div>
+                
+                {tab === 'overview' && isSuper && (
+                    <div style={{ marginTop: window.innerWidth <= 768 ? '1rem' : '0' }}>
+                        <h2>System Command Overview</h2>
+                        <div className="stat-grid">
+                            <div className="stat-card"><h3>Total Users</h3><div className="value">{stats.total_users || 0}</div></div>
+                            <div className="stat-card"><h3>Active System Admins</h3><div className="value">{stats.total_system_admins || 0}</div></div>
+                            <div className="stat-card"><h3>Total Chat Sessions</h3><div className="value" style={{color:'#818cf8'}}>{stats.total_chat_sessions || 0}</div></div>
+                            <div className="stat-card"><h3>Embedded Documents</h3><div className="value" style={{color:'#4ade80'}}>{stats.total_documents || 0}</div></div>
+                        </div>
+
+                        {/* WORD REPRESENTATION (INSIGHTS) CONTAINER */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem', marginTop: '2rem' }}>
+                            {analytics && selectedMonth && analytics[selectedMonth] ? (
+                                <React.Fragment>
+                                    <div className="insight-card">
+                                        <div style={{display:'flex', alignItems:'center', marginBottom: '1rem'}}>
+                                            <h3><i className="fas fa-brain"></i> Query Intelligence</h3>
+                                            <select value={selectedMonth} onChange={e=>setSelectedMonth(e.target.value)} style={{background: 'rgba(255,255,255,0.1)', color: 'white', padding: '0.4rem', border: 'none', borderRadius: '4px', marginLeft: 'auto'}}>
+                                                {Object.keys(analytics).map(k => <option key={k} value={k} style={{color: 'black'}}>{k}</option>)}
+                                            </select>
+                                        </div>
+                                        {(() => {
+                                            const m = analytics[selectedMonth];
+                                            const total = m.answered + m.unanswered;
+                                            const rate = total > 0 ? Math.round((m.answered / total) * 100) : 0;
+                                            return (
+                                                <p>
+                                                    In <span className="insight-highlight">{selectedMonth}</span>, Bowen AI successfully processed <span className="insight-highlight">{m.answered}</span> academic inquiries. 
+                                                    This represents a <span className="insight-highlight">{rate}% success rate</span>. 
+                                                    Only <span className="insight-highlight">{m.unanswered}</span> queries required system fallback, indicating high knowledge base coverage.
+                                                    <br /><br />
+                                                    <span className="insight-status" style={{background: rate > 80 ? 'rgba(74, 222, 128, 0.2)' : 'rgba(245, 158, 11, 0.2)', color: rate > 80 ? '#4ade80' : '#fbbf24'}}>
+                                                        Status: {rate > 80 ? 'Excellent' : 'Stable'}
+                                                    </span>
+                                                </p>
+                                            );
+                                        })()}
+                                    </div>
+
+                                    <div className="insight-card">
+                                        <h3><i className="fas fa-users"></i> Audience Engagement</h3>
+                                        {(() => {
+                                            const m = analytics[selectedMonth];
+                                            const totalUsers = stats.total_users || 1;
+                                            const engagement = Math.round((m.active_users_count / totalUsers) * 100);
+                                            return (
+                                                <p>
+                                                    During this period, <span className="insight-highlight">{m.active_users_count}</span> unique students actively engaged with the platform. 
+                                                    This constitutes <span className="insight-highlight">{engagement}%</span> of the total registered student base. 
+                                                    The platform footprint continues to grow as the AI becomes a primary point of academic reference.
+                                                    <br /><br />
+                                                    <span className="insight-status" style={{background: '#818cf822', color: '#818cf8'}}>
+                                                        Trend: Positive
+                                                    </span>
+                                                </p>
+                                            );
+                                        })()}
+                                    </div>
+                                </React.Fragment>
+                            ) : (
+                                <div style={{gridColumn: '1/-1', textAlign: 'center', padding: '3rem', opacity: 0.5}}>
+                                    No analytical data available for word representation yet.
+                                </div>
+                            )}
+                        </div>
+                        {/* PENDING ADMINS SHORTCUT */}
+                        {pendingUsers.length > 0 && (
+                            <div style={{marginTop: '2rem', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid #fbbf24', borderRadius: '12px', padding: '1.5rem'}}>
+                                <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                                    <div>
+                                        <h3 style={{color:'#fbbf24', margin:0}}><i className="fas fa-triangle-exclamation"></i> Action Required: Pending Clearances</h3>
+                                        <p style={{color:'var(--text-muted)', fontSize:'0.9rem', marginTop:'0.5rem'}}>You have <b>{pendingUsers.length}</b> new administrator(s) waiting for verification before they can login.</p>
+                                    </div>
+                                    <button className="btn btn-primary" onClick={()=>setTab('users')}>Verify in Access Control <i className="fas fa-arrow-right"></i></button>
+                                </div>
+                            </div>
+                        )}
+                        
+                    </div>
+                )}
+
+                {tab === 'knowledge-gaps' && <KnowledgeGapsTab token={token} />}
+
+                {tab === 'users' && <UsersTab token={token} isSuper={isSuper} />}
+
+                {tab === 'documents' && (
+                    <div>
+                        {!docToken && !showOTP && (
+                            <div className="otp-locked">
+                                <i className="fas fa-shield-halved" style={{ fontSize: '4rem', color: 'var(--primary)'}}></i>
+                                <h2>Step-Up Authorization Required</h2>
+                                <p className="text-muted" style={{maxWidth: '400px'}}>To strictly prevent unauthorized manipulation of the AI vector knowledge base, you must pass a secondary email verification.</p>
+                                <button className="btn btn-primary" onClick={requestDocOpt} disabled={otpLoading}>
+                                    {otpLoading ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-key"></i>} Request Access Token
+                                </button>
+                            </div>
+                        )}
+                        {docToken && <DocumentsTab token={token} docToken={docToken} />}
+                        {!docToken && showOTP && (
+                            <OTPPopup 
+                                email={user.email}
+                                onVerify={verifyDocOtp}
+                                onResend={requestDocOpt}
+                                onCancel={() => setShowOTP(false)}
+                            />
+                        )}
+                    </div>
+                )}
+
+                {tab === 'logs' && isSuper && (
+                    <div>
+                        <h2>Administrative Audit logs</h2>
+                        <div style={{ background: '#0a0a0a', padding: '1.5rem', borderRadius: '8px', fontFamily: 'monospace', color: '#4ade80', height: '65vh', overflowY: 'auto', border: '1px solid var(--border-color)' }}>
+                            {logs.length === 0 ? <div>&gt; No recorded actions yet.</div> : logs.map((L, i) => (
+                                <div key={i} style={{ marginBottom: '0.75rem', borderBottom: '1px solid rgba(74, 222, 128, 0.1)', paddingBottom: '0.5rem' }}>
+                                    <span style={{ color: '#94a3b8' }}>[{new Date(L.timestamp).toLocaleString()}]</span><br />
+                                    <span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>{L.admin_email}</span> executed 
+                                    <span style={{ color: '#fbbf24' }}> {L.action}</span>
+                                    {L.target && <span style={{ color: '#ec4899' }}> on {L.target}</span>}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+// ---------------------------
+// ROOT MOUNTER
+// ---------------------------
+function Main() {
+    const [token, setToken] = useState(localStorage.getItem('admin_token'));
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (!token) { setLoading(false); return; }
+        // Verify token & Role
+        fetch('/auth/me', { headers: { 'Authorization': `Bearer ${token}` }})
+            .then(r => {
+                if(!r.ok) { localStorage.removeItem('admin_token'); setToken(null); setLoading(false); throw "Bad Token"; }
+                return r.json();
+            })
+            .then(data => {
+                if(data.role !== 'admin' && data.role !== 'superadmin') {
+                    alert("Unauthorized. User account detected. Redirecting to standard portal.");
+                    window.location.href = "/";
+                } else {
+                    setUser(data);
+                    setLoading(false);
+                }
+            }).catch(e => setLoading(false));
+    }, [token]);
+
+    const handleLogout = () => {
+        localStorage.removeItem('admin_token');
+        localStorage.removeItem('bowen_token');
+        setToken(null);
+        setUser(null);
+    };
+
+    if (loading) return <div style={{display:'flex', height:'100vh', alignItems:'center', justifyContent:'center'}}><i className="fas fa-spinner fa-spin fa-3x" style={{color:'var(--primary)'}}></i></div>;
+
+    if (!token || !user) return <AdminAuthApp onLogin={(tok) => setToken(tok)} />;
+
+    return <AdminDashboard user={user} token={token} onLogout={handleLogout} />;
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<Main />);
+</script>
+</body>
+</html>
