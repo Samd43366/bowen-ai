@@ -13,3 +13,4 @@ pymupdf
 email-validator
 python-docx
 slowapi
+aiosmtplib
