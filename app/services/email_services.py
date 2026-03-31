@@ -1,25 +1,33 @@
-import aiosmtplib
-from email.message import EmailMessage
+import httpx
+import logging
 from app.core.config import settings
 
+logger = logging.getLogger(__name__)
 
 async def send_email(to_email: str, subject: str, body: str):
-    message = EmailMessage()
-    message["From"] = settings.EMAIL_FROM
-    message["To"] = to_email
-    message["Subject"] = subject
-    message.set_content(body)
-
-    await aiosmtplib.send(
-        message,
-        hostname=settings.SMTP_HOST,
-        port=settings.SMTP_PORT,
-        username=settings.SMTP_USER,
-        password=settings.SMTP_PASSWORD,
-        use_tls=True if settings.SMTP_PORT == 465 else False,
-        start_tls=True if settings.SMTP_PORT == 587 else False,
-        timeout=15
-    )
+    url = "https://api.brevo.com/v3/smtp/email"
+    headers = {
+        "accept": "application/json",
+        "api-key": settings.BREVO_API_KEY,
+        "content-type": "application/json"
+    }
+    payload = {
+        "sender": {
+            "name": settings.EMAIL_FROM_NAME,
+            "email": settings.EMAIL_FROM
+        },
+        "to": [{"email": to_email}],
+        "subject": subject,
+        "textContent": body
+    }
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(url, json=payload, headers=headers, timeout=15.0)
+            response.raise_for_status()
+            logger.info("Email sent successfully via Brevo API")
+        except Exception as e:
+            logger.error(f"Failed to send email via Brevo: {str(e)}")
+            raise Exception(f"Failed to send email via Brevo: {str(e)}")
 
 
 async def send_otp_email(to_email: str, otp_code: str):

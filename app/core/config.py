@@ -18,12 +18,9 @@ class Settings(BaseSettings):
     GROQ_API_KEY: str
     GROQ_MODEL: str = "llama-3.3-70b-versatile"
 
-    SMTP_HOST: str
-    SMTP_PORT: int
-    SMTP_USER: str
-    SMTP_PASSWORD: str
-    SMTP_FROM_NAME: str
+    EMAIL_FROM_NAME: str = "Bowen AI"
     EMAIL_FROM: str
+    BREVO_API_KEY: str
     
     ADMIN_REGISTRATION_SECRET: str
 
