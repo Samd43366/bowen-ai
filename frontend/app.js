@@ -4,10 +4,10 @@ const { useState, useEffect, useRef } = React;
 function Input({ icon, type, placeholder, name, value, onChange }) {
     return (
         <div className="input-group">
-            <input 
-                className="input-field" 
-                type={type} 
-                placeholder={placeholder} 
+            <input
+                className="input-field"
+                type={type}
+                placeholder={placeholder}
                 name={name}
                 value={value}
                 onChange={onChange}
@@ -21,8 +21,8 @@ function Input({ icon, type, placeholder, name, value, onChange }) {
 function TopAlert({ message, type }) {
     if (!message) return null;
     const style = {
-        padding: '0.75rem', 
-        borderRadius: '8px', 
+        padding: '0.75rem',
+        borderRadius: '8px',
         marginBottom: '1.5rem',
         fontSize: '0.9rem',
         textAlign: 'center',
@@ -72,7 +72,7 @@ function OTPPopup({ email, onVerify, onResend, onCancel }) {
                 <i className="fas fa-shield-halved otp-icon"></i>
                 <h3>Authenticate OTP</h3>
                 <p>We've sent a 6-digit verification code to <br /><strong>{email || 'your email'}</strong></p>
-                
+
                 <div className="otp-inputs">
                     {otp.map((digit, index) => (
                         <input
@@ -87,12 +87,12 @@ function OTPPopup({ email, onVerify, onResend, onCancel }) {
                         />
                     ))}
                 </div>
-                
+
                 {/* BIG Button for submit */}
                 <button className="btn btn-primary" onClick={handleVerifyCode} style={{ padding: '1.2rem', fontSize: '1.1rem' }}>
                     <i className="fas fa-check-circle"></i> Verify Content
                 </button>
-                
+
                 {/* SMALL Button to resend */}
                 <button className="btn-resend" onClick={onResend}>
                     Didn't receive it? Resend OTP
@@ -121,7 +121,7 @@ function AuthApp({ onLogin, toggleTheme, isDarkMode }) {
         e.preventDefault();
         setLoading(true);
         setAlertMsg({ text: '', type: '' });
-        
+
         try {
             const res = await fetch('/auth/register', {
                 method: 'POST',
@@ -134,7 +134,7 @@ function AuthApp({ onLogin, toggleTheme, isDarkMode }) {
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.detail || 'Registration failed');
-            
+
             setAlertMsg({ text: data.message, type: 'success' });
             setShowOTP(true);
         } catch (err) {
@@ -148,7 +148,7 @@ function AuthApp({ onLogin, toggleTheme, isDarkMode }) {
         e.preventDefault();
         setLoading(true);
         setAlertMsg({ text: '', type: '' });
-        
+
         try {
             const res = await fetch('/auth/login', {
                 method: 'POST',
@@ -160,10 +160,10 @@ function AuthApp({ onLogin, toggleTheme, isDarkMode }) {
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.detail || 'Login failed');
-            
+
             localStorage.setItem('bowen_token', data.access_token);
             setAlertMsg({ text: 'Login successful! Redirecting...', type: 'success' });
-            
+
             setTimeout(() => {
                 onLogin(data.access_token);
             }, 1000);
@@ -192,7 +192,7 @@ function AuthApp({ onLogin, toggleTheme, isDarkMode }) {
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.detail || 'Verification failed');
-            
+
             setShowOTP(false);
             setView('login');
             setAlertMsg({ text: 'Account verified successfully! Please log in.', type: 'success' });
@@ -215,7 +215,7 @@ function AuthApp({ onLogin, toggleTheme, isDarkMode }) {
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.detail || 'Request failed');
-            
+
             setAlertMsg({ text: data.message, type: 'success' });
             setView('resetPassword');
         } catch (err) {
@@ -233,7 +233,7 @@ function AuthApp({ onLogin, toggleTheme, isDarkMode }) {
             const res = await fetch('/auth/reset-password', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     email: formData.email,
                     otp_code: formData.otp_code,
                     new_password: formData.new_password
@@ -241,7 +241,7 @@ function AuthApp({ onLogin, toggleTheme, isDarkMode }) {
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.detail || 'Reset failed');
-            
+
             setAlertMsg({ text: data.message + ' Please log in.', type: 'success' });
             setView('login');
         } catch (err) {
@@ -264,28 +264,28 @@ function AuthApp({ onLogin, toggleTheme, isDarkMode }) {
             messagingSenderId: "129461512801",
             appId: "1:129461512801:web:625d1f4bbd2b5efa985820"
         };
-        
+
         if (!window.firebase.apps.length) {
             window.firebase.initializeApp(firebaseConfig);
         }
 
         try {
-            const provider = providerType === 'google' 
-                ? new window.firebase.auth.GoogleAuthProvider() 
+            const provider = providerType === 'google'
+                ? new window.firebase.auth.GoogleAuthProvider()
                 : new window.firebase.auth.OAuthProvider('apple.com');
-                
+
             const result = await window.firebase.auth().signInWithPopup(provider);
             const idToken = await result.user.getIdToken();
-            
+
             const res = await fetch('/auth/social-login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ firebase_id_token: idToken })
             });
             const data = await res.json();
-            
+
             if (!res.ok) throw new Error(data.detail || 'Social Login failed');
-            
+
             if (data.requires_otp) {
                 setFormData({ ...formData, email: result.user.email });
                 setShowOTP(true);
@@ -314,18 +314,18 @@ function AuthApp({ onLogin, toggleTheme, isDarkMode }) {
             <div className="glass-card" key={view}>
                 <div className="card-header">
                     <h2 className="card-title">
-                        {view === 'login' ? 'Welcome Back' : 
-                         view === 'register' ? 'Create Account' : 
-                         view === 'forgotPassword' ? 'Reset Password' : 'New Password'}
+                        {view === 'login' ? 'Welcome Back' :
+                            view === 'register' ? 'Create Account' :
+                                view === 'forgotPassword' ? 'Reset Password' : 'New Password'}
                     </h2>
                     <p className="card-subtitle">
-                        {view === 'login' 
-                            ? 'Enter your credentials to access Bowen AI' 
+                        {view === 'login'
+                            ? 'Enter your credentials to access Bowen AI'
                             : view === 'register'
-                            ? 'Join our cutting-edge AI platform today'
-                            : view === 'forgotPassword'
-                            ? 'Enter your email to receive a reset code'
-                            : 'Enter the OTP and your new password'}
+                                ? 'Join our cutting-edge AI platform today'
+                                : view === 'forgotPassword'
+                                    ? 'Enter your email to receive a reset code'
+                                    : 'Enter the OTP and your new password'}
                     </p>
                 </div>
 
@@ -335,11 +335,11 @@ function AuthApp({ onLogin, toggleTheme, isDarkMode }) {
                     <form onSubmit={handleLoginSubmit}>
                         <Input icon="fa-envelope" type="email" placeholder="Email Address" name="email" value={formData.email} onChange={handleInput} />
                         <Input icon="fa-lock" type="password" placeholder="Password" name="password" value={formData.password} onChange={handleInput} />
-                        
+
                         <div style={{ textAlign: 'right', marginBottom: '1.5rem', fontSize: '0.85rem' }}>
-                            <span style={{ color: 'var(--text-muted)', cursor: 'pointer' }} onClick={() => { setView('forgotPassword'); setAlertMsg({text:'', type:''}); }}>Forgot password?</span>
+                            <span style={{ color: 'var(--text-muted)', cursor: 'pointer' }} onClick={() => { setView('forgotPassword'); setAlertMsg({ text: '', type: '' }); }}>Forgot password?</span>
                         </div>
-                        
+
                         <button className="btn btn-primary" type="submit" disabled={loading}>
                             {loading ? <i className="fas fa-circle-notch fa-spin"></i> : <i className="fas fa-sign-in-alt"></i>}
                             {loading ? ' Signing In...' : ' Sign In'}
@@ -352,7 +352,7 @@ function AuthApp({ onLogin, toggleTheme, isDarkMode }) {
                         <Input icon="fa-user" type="text" placeholder="Full Name" name="name" value={formData.name} onChange={handleInput} />
                         <Input icon="fa-envelope" type="email" placeholder="Email Address" name="email" value={formData.email} onChange={handleInput} />
                         <Input icon="fa-lock" type="password" placeholder="Password" name="password" value={formData.password} onChange={handleInput} />
-                        
+
                         <button className="btn btn-primary" type="submit" disabled={loading}>
                             {loading ? <i className="fas fa-circle-notch fa-spin"></i> : <i className="fas fa-user-plus"></i>}
                             {loading ? ' Creating...' : ' Create Account'}
@@ -367,7 +367,7 @@ function AuthApp({ onLogin, toggleTheme, isDarkMode }) {
                             {loading ? <i className="fas fa-circle-notch fa-spin"></i> : <i className="fas fa-paper-plane"></i>}
                             {loading ? ' Sending...' : ' Send Reset Code'}
                         </button>
-                        <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.85rem', cursor: 'pointer', color: 'var(--text-muted)' }} onClick={() => { setView('login'); setAlertMsg({text:'', type:''}); }}>
+                        <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.85rem', cursor: 'pointer', color: 'var(--text-muted)' }} onClick={() => { setView('login'); setAlertMsg({ text: '', type: '' }); }}>
                             <i className="fas fa-arrow-left"></i> Back to sign in
                         </div>
                     </form>
@@ -397,12 +397,12 @@ function AuthApp({ onLogin, toggleTheme, isDarkMode }) {
                         </div>
                         <div className="toggle-view">
                             {view === 'login' ? (
-                                <p>Don't have an account? <span onClick={() => { setView('register'); setAlertMsg({text:'', type:''}); }}>Sign up</span></p>
+                                <p>Don't have an account? <span onClick={() => { setView('register'); setAlertMsg({ text: '', type: '' }); }}>Sign up</span></p>
                             ) : (
-                                <p>Already have an account? <span onClick={() => { setView('login'); setAlertMsg({text:'', type:''}); }}>Sign in</span></p>
+                                <p>Already have an account? <span onClick={() => { setView('login'); setAlertMsg({ text: '', type: '' }); }}>Sign in</span></p>
                             )}
                         </div>
-                        
+
                         <div style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.85rem' }}>
                             <a href="/admin.html" style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 500 }}>
                                 <i className="fas fa-shield-halved"></i> Login as Administrator
@@ -414,7 +414,7 @@ function AuthApp({ onLogin, toggleTheme, isDarkMode }) {
 
             {/* OTP Popup Overlay */}
             {showOTP && (
-                <OTPPopup 
+                <OTPPopup
                     email={formData.email}
                     onVerify={handleVerifyOTP}
                     onResend={async () => {
@@ -449,15 +449,15 @@ function ChatApp({ token, onLogout, toggleTheme, isDarkMode }) {
         fetch('/auth/me', {
             headers: { 'Authorization': `Bearer ${token}` }
         })
-        .then(res => {
-            if (!res.ok) throw new Error('Failed to fetch user');
-            return res.json();
-        })
-        .then(data => setUser(data))
-        .catch(err => {
-            console.error(err);
-            onLogout();
-        });
+            .then(res => {
+                if (!res.ok) throw new Error('Failed to fetch user');
+                return res.json();
+            })
+            .then(data => setUser(data))
+            .catch(err => {
+                console.error(err);
+                onLogout();
+            });
     }, [token, onLogout]);
 
     useEffect(() => {
@@ -469,7 +469,7 @@ function ChatApp({ token, onLogout, toggleTheme, isDarkMode }) {
     const handleSend = async (e) => {
         e.preventDefault();
         if (!input.trim() || loading) return;
-        
+
         const newMsg = { role: 'user', content: input };
         setMessages(prev => [...prev, newMsg]);
         setInput('');
@@ -478,7 +478,7 @@ function ChatApp({ token, onLogout, toggleTheme, isDarkMode }) {
         try {
             const res = await fetch('/user/ask', {
                 method: 'POST',
-                headers: { 
+                headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
@@ -486,7 +486,7 @@ function ChatApp({ token, onLogout, toggleTheme, isDarkMode }) {
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.detail || 'Failed to get answer');
-            
+
             setMessages(prev => [...prev, { role: 'ai', content: data.answer, sources: data.sources }]);
         } catch (err) {
             setMessages(prev => [...prev, { role: 'ai', content: `Error: ${err.message}` }]);
@@ -504,7 +504,7 @@ function ChatApp({ token, onLogout, toggleTheme, isDarkMode }) {
                         <i className={`fas ${isDarkMode ? 'fa-sun' : 'fa-moon'}`}></i>
                     </button>
                 </div>
-                
+
                 {user ? (
                     <div className="user-profile">
                         <div className="avatar"><i className="fas fa-user"></i></div>
@@ -516,7 +516,7 @@ function ChatApp({ token, onLogout, toggleTheme, isDarkMode }) {
                 ) : (
                     <div className="user-profile" style={{ justifyContent: 'center' }}><i className="fas fa-circle-notch fa-spin"></i></div>
                 )}
-                
+
                 <div style={{ marginTop: 'auto' }}>
                     <button className="btn btn-social" style={{ width: '100%', justifyContent: 'flex-start', color: '#fca5a5', borderColor: '#fca5a5' }} onClick={onLogout}>
                         <i className="fas fa-sign-out-alt"></i> Sign Out
@@ -552,11 +552,11 @@ function ChatApp({ token, onLogout, toggleTheme, isDarkMode }) {
                     )}
                     <div ref={messagesEndRef} />
                 </div>
-                
+
                 <form className="chat-input-area" onSubmit={handleSend}>
-                    <input 
-                        className="input-field" 
-                        placeholder="Ask Bowen AI anything..." 
+                    <input
+                        className="input-field"
+                        placeholder="Ask Bowen AI anything..."
                         value={input}
                         onChange={e => setInput(e.target.value)}
                         disabled={loading}
@@ -619,7 +619,7 @@ class ErrorBoundary extends React.Component {
                 </div>
             );
         }
-        return this.props.children; 
+        return this.props.children;
     }
 }
 

@@ -1,1074 +1,1058 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
     <title>Bowen AI Authentication</title>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- React & ReactDOM -->
-    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-    
+
+    <!-- React & ReactDOM (Production) -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+
     <!-- Babel for JSX (Upgraded to v7) -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
+
     <!-- Firebase Compat SDKs (for Social Login) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-    
+
     <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+
     <link rel="stylesheet" href="style.css">
-    
-    <script>
-        // AGGRESSIVE ERROR CATCHER
-        window.addEventListener('error', function(e) {
-            var errDiv = document.createElement('div');
-            errDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:red;color:white;z-index:999999;padding:20px;font-size:20px;font-family:monospace;white-space:pre-wrap;';
-            errDiv.innerHTML = 'GLOBAL ERROR:<br>' + (e.error ? e.error.stack : e.message);
-            document.body.appendChild(errDiv);
-        });
-        window.addEventListener('unhandledrejection', function(e) {
-            var errDiv = document.createElement('div');
-            errDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:orange;color:white;z-index:999999;padding:20px;font-size:20px;font-family:monospace;white-space:pre-wrap;';
-            errDiv.innerHTML = 'UNHANDLED PROMISE:<br>' + (e.reason && e.reason.stack ? e.reason.stack : e.reason);
-            document.body.appendChild(errDiv);
-        });
-        // Catch Babel Compilation Errors
-        var originalConsoleError = console.error;
-        console.error = function() {
-            var message = Array.from(arguments).join(' ');
-            if (message && message.indexOf && message.indexOf('SyntaxError') !== -1) {
-                var errDiv = document.createElement('div');
-                errDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:purple;color:white;z-index:999999;padding:20px;font-size:20px;font-family:monospace;white-space:pre-wrap;';
-                errDiv.innerHTML = 'BABEL/CONSOLE ERROR:<br>' + message;
-                document.body.appendChild(errDiv);
-            }
-            originalConsoleError.apply(console, arguments);
-        };
-    </script>
+
 </head>
+
 <body>
 
-    
+
     <div id="root"></div>
 
     <script type="text/babel">
-console.log("APP.JS STARTING");
-const { useState, useEffect, useRef } = React;
-
-function Input({ icon, type, placeholder, name, value, onChange }) {
-    return (
-        <div className="input-group">
-            <input 
-                className="input-field" 
-                type={type} 
-                placeholder={placeholder} 
-                name={name}
-                value={value}
-                onChange={onChange}
-                required
-            />
-            <i className={`fas ${icon} input-icon`}></i>
-        </div>
-    );
-}
-
-function PasswordStrengthMeter({ password }) {
-    if (!password) return null;
-
-    const getStrength = (pwd) => {
-        let score = 0;
-        if (pwd.length >= 8) score++;
-        if (/[0-9]/.test(pwd)) score++;
-        if (/[^A-Za-z0-9]/.test(pwd)) score++;
-        if (/[A-Z]/.test(pwd) && /[a-z]/.test(pwd)) score++;
-        return score;
-    };
-
-    const score = getStrength(password);
-    let label = "";
-    let activeClass = "";
-    let color = "";
-
-    if (score <= 1) {
-        label = "Weak";
-        activeClass = "segment-active-weak";
-        color = "#ef4444";
-    } else if (score === 2) {
-        label = "Strong";
-        activeClass = "segment-active-strong";
-        color = "#f97316";
-    } else {
-        label = "Very Strong";
-        activeClass = "segment-active-very-strong";
-        color = "#22c55e";
-    }
-
-    return (
-        <div className="strength-meter">
-            <div className="volume-bar-container">
-                <div className={`volume-segment ${score >= 1 ? activeClass : ''}`}></div>
-                <div className={`volume-segment ${score >= 2 ? activeClass : ''}`}></div>
-                <div className={`volume-segment ${score >= 3 ? activeClass : ''}`}></div>
-            </div>
-            <div className="strength-text">
-                <span style={{ color: color }}>{label}</span>
-                <span style={{ opacity: 0.6 }}>Password Strength</span>
-            </div>
-        </div>
-    );
-}
-
-function TopAlert({ message, type }) {
-    if (!message) return null;
-    const style = {
-        padding: '0.75rem', 
-        borderRadius: '8px', 
-        marginBottom: '1.5rem',
-        fontSize: '0.9rem',
-        textAlign: 'center',
-        background: type === 'error' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)',
-        border: `1px solid ${type === 'error' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(34, 197, 94, 0.3)'}`,
-        color: type === 'error' ? '#fca5a5' : '#86efac'
-    };
-    return <div style={style}>{message}</div>;
-}
-
-function OTPPopup({ email, onVerify, onResend, onCancel }) {
-    const [otp, setOtp] = useState(['', '', '', '', '', '']);
-    const [timer, setTimer] = useState(60);
-    const inputs = useRef([]);
-
-    useEffect(() => {
-        if (timer <= 0) return;
-        const interval = setInterval(() => {
-            setTimer(prev => prev - 1);
-        }, 1000);
-        return () => clearInterval(interval);
-    }, [timer]);
-
-    const handleChange = (e, index) => {
-        const val = e.target.value;
-        if (isNaN(val)) return;
-
-        const newOtp = [...otp];
-        newOtp[index] = val.substring(val.length - 1);
-        setOtp(newOtp);
-
-        // Move to next input
-        if (val && index < 5) {
-            inputs.current[index + 1].focus();
-        }
-    };
-
-    const handleKeyDown = (e, index) => {
-        if (e.key === 'Backspace' && !otp[index] && index > 0) {
-            inputs.current[index - 1].focus();
-        }
-    };
-
-    const handleVerifyCode = () => {
-        const code = otp.join('');
-        if (code.length === 6) {
-            onVerify(code);
-        } else {
-            alert('Please enter a 6-digit code');
-        }
-    };
-
-    const handleResendClick = () => {
-        setTimer(60);
-        onResend();
-    };
-
-    return (
-        <div className="overlay" style={{ animation: 'fadeIn 0.3s forwards' }}>
-            <div className="otp-popup">
-                <i className="fas fa-shield-halved otp-icon"></i>
-                <h3>Authenticate OTP</h3>
-                <p>We've sent a 6-digit verification code to <br /><strong>{email || 'your email'}</strong></p>
-                
-                <div className="otp-inputs">
-                    {otp.map((digit, index) => (
-                        <input
-                            key={index}
-                            type="text"
-                            maxLength="1"
-                            className="otp-digit"
-                            value={digit}
-                            onChange={(e) => handleChange(e, index)}
-                            onKeyDown={(e) => handleKeyDown(e, index)}
-                            ref={(el) => (inputs.current[index] = el)}
-                        />
-                    ))}
-                </div>
-
-                <div style={{ marginBottom: '1.5rem', fontWeight: 600, color: timer > 0 ? 'var(--primary)' : '#fca5a5' }}>
-                    {timer > 0 ? (
-                        <span><i className="fas fa-clock"></i> Expires in {timer}s</span>
-                    ) : (
-                        <span><i className="fas fa-circle-exclamation"></i> Code expired</span>
-                    )}
-                </div>
-                
-                {/* BIG Button for submit */}
-                <button 
-                    className="btn btn-primary" 
-                    onClick={handleVerifyCode} 
-                    style={{ padding: '1.2rem', fontSize: '1.1rem', opacity: timer > 0 ? 1 : 0.6 }}
-                    disabled={timer <= 0}
-                >
-                    <i className="fas fa-check-circle"></i> {timer > 0 ? 'Verify' : 'Code Expired'}
-                </button>
-                
-                {/* SMALL Button to resend */}
-                <button className="btn-resend" onClick={handleResendClick}>
-                    Didn't receive it? Resend OTP
-                </button>
-
-                <div style={{ marginTop: '1.5rem', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '0.8rem' }} onClick={onCancel}>
-                    <i className="fas fa-arrow-left"></i> Back to sign in
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function AuthApp({ onLogin, toggleTheme, isDarkMode, onBack }) {
-    const [view, setView] = useState('login'); // 'login' or 'register'
-    const [showOTP, setShowOTP] = useState(false);
-    const [formData, setFormData] = useState({ name: '', email: '', password: '' });
-    const [loading, setLoading] = useState(false);
-    const [alertMsg, setAlertMsg] = useState({ text: '', type: '' });
-
-    const handleInput = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
-
-    const handleRegisterSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setAlertMsg({ text: '', type: '' });
-        
-        try {
-            const res = await fetch('/auth/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    full_name: formData.name,
-                    email: formData.email,
-                    password: formData.password
-                })
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.detail || 'Registration failed');
-            
-            setAlertMsg({ text: data.message, type: 'success' });
-            setShowOTP(true);
-        } catch (err) {
-            setAlertMsg({ text: err.message, type: 'error' });
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleLoginSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setAlertMsg({ text: '', type: '' });
-        
-        try {
-            const res = await fetch('/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    email: formData.email,
-                    password: formData.password
-                })
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.detail || 'Login failed');
-            
-            localStorage.setItem('bowen_token', data.access_token);
-            setAlertMsg({ text: data.message || 'Sign in successful! Entering platform...', type: 'success' });
-            
-            setTimeout(() => {
-                onLogin(data.access_token);
-            }, 1500);
-        } catch (err) {
-            if (err.message.includes('verify your email') || err.message.includes('OTP')) {
-                setShowOTP(true);
-                setAlertMsg({ text: err.message, type: 'error' });
-            } else {
-                setAlertMsg({ text: err.message, type: 'error' });
-            }
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleVerifyOTP = async (code) => {
-        setLoading(true);
-        try {
-            const res = await fetch('/auth/verify-otp', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    email: formData.email,
-                    otp_code: code
-                })
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.detail || 'Verification failed');
-            
-            if (data.access_token) {
-                setShowOTP(false);
-                setAlertMsg({ text: data.message || 'Account verified successfully! Logging you in...', type: 'success' });
-                localStorage.setItem('bowen_token', data.access_token);
-                setTimeout(() => {
-                    onLogin(data.access_token);
-                }, 1500);
-            } else {
-                setShowOTP(false);
-                setView('login');
-                setAlertMsg({ text: 'Account verified successfully! Please log in.', type: 'success' });
-            }
-        } catch (err) {
-            alert(err.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleForgotPasswordSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setAlertMsg({ text: '', type: '' });
-        try {
-            const res = await fetch('/auth/forgot-password', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: formData.email })
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.detail || 'Request failed');
-            
-            setAlertMsg({ text: data.message, type: 'success' });
-            setView('resetPassword');
-        } catch (err) {
-            setAlertMsg({ text: err.message, type: 'error' });
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleResetPasswordSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setAlertMsg({ text: '', type: '' });
-        try {
-            const res = await fetch('/auth/reset-password', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    email: formData.email,
-                    otp_code: formData.otp_code,
-                    new_password: formData.new_password
-                })
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.detail || 'Reset failed');
-            
-            setAlertMsg({ text: data.message + ' Please log in.', type: 'success' });
-            setView('login');
-        } catch (err) {
-            setAlertMsg({ text: err.message, type: 'error' });
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleSocialLogin = async (providerType) => {
-        setLoading(true);
-        setAlertMsg({ text: '', type: '' });
-
-        // REAL CONFIG - from Firebase Console
-        const firebaseConfig = {
-            apiKey: "AIzaSyCVr89Gbx76jG9V12Hh_wrb6b5b5o5PB-0",
-            authDomain: "bowen-assistant-2ab72.firebaseapp.com",
-            projectId: "bowen-assistant-2ab72",
-            storageBucket: "bowen-assistant-2ab72.firebasestorage.app",
-            messagingSenderId: "129461512801",
-            appId: "1:129461512801:web:625d1f4bbd2b5efa985820"
+        // SAFESTORAGE WRAPPER FOR SAFARI - prevents SecurityError in iframes
+        const safeStorage = {
+            getItem: (key) => { try { return localStorage.getItem(key); } catch (e) { console.warn("Storage access denied:", e); return null; } },
+            setItem: (key, val) => { try { localStorage.setItem(key, val); } catch (e) { console.warn("Storage access denied:", e); } },
+            removeItem: (key) => { try { localStorage.removeItem(key); } catch (e) { console.warn("Storage access denied:", e); } }
         };
-        
-        if (!window.firebase) {
-            setAlertMsg({ text: 'Social Login SDK not loaded. Please refresh or check your connection.', type: 'error' });
-            setLoading(false);
-            return;
-        }
 
-        if (!window.firebase.apps.length) {
-            window.firebase.initializeApp(firebaseConfig);
-        }
+        console.log("APP.JS STARTING");
+        const { useState, useEffect, useRef } = React;
 
-        try {
-            const provider = providerType === 'google' 
-                ? new window.firebase.auth.GoogleAuthProvider() 
-                : new window.firebase.auth.OAuthProvider('apple.com');
-                
-            const result = await window.firebase.auth().signInWithPopup(provider);
-            const idToken = await result.user.getIdToken();
-            
-            const res = await fetch('/auth/social-login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ firebase_id_token: idToken })
-            });
-            const data = await res.json();
-            
-            if (!res.ok) throw new Error(data.detail || 'Social Login failed');
-            
-            if (data.requires_otp) {
-                setFormData({ ...formData, email: result.user.email });
-                setShowOTP(true);
-                setAlertMsg({ text: data.message, type: 'success' });
-            } else {
-                localStorage.setItem('bowen_token', data.access_token);
-                setAlertMsg({ text: 'Social Login successful! Redirecting...', type: 'success' });
-                setTimeout(() => { onLogin(data.access_token); }, 1000);
-            }
-        } catch (err) {
-            console.error(err);
-            if (err.code !== 'auth/popup-closed-by-user') {
-                setAlertMsg({ text: err.message || 'Firebase Auth failed.', type: 'error' });
-            }
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-        <div className="auth-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100dvh', width: '100%' }}>
-            <button className="theme-toggle" onClick={toggleTheme} type="button">
-                <i className={`fas ${isDarkMode ? 'fa-sun' : 'fa-moon'}`}></i>
-            </button>
-            {/* The main authentication card */}
-            <div className="glass-card" key={view}>
-                <div className="card-header">
-                    <h2 className="card-title">
-                        {view === 'login' ? 'Welcome Back' : 
-                         view === 'register' ? 'Create Account' : 
-                         view === 'forgotPassword' ? 'Reset Password' : 'New Password'}
-                    </h2>
-                    <p className="card-subtitle">
-                        {view === 'login' 
-                            ? 'Enter your credentials to access Bowen AI' 
-                            : view === 'register'
-                            ? 'Join our cutting-edge AI platform today'
-                            : view === 'forgotPassword'
-                            ? 'Enter your email to receive a reset code'
-                            : 'Enter the OTP and your new password'}
-                    </p>
-                </div>
-
-                <TopAlert message={alertMsg.text} type={alertMsg.type} />
-
-                <div style={{ position: 'absolute', top: '1.5rem', left: '1.5rem' }}>
-                    <button className="hamburger" onClick={onBack} title="Back to free chat">
-                        <i className="fas fa-arrow-left"></i>
-                    </button>
-                </div>
-
-                {view === 'login' && (
-                    <form onSubmit={handleLoginSubmit}>
-                        <Input icon="fa-envelope" type="email" placeholder="Email Address" name="email" value={formData.email} onChange={handleInput} />
-                        <Input icon="fa-lock" type="password" placeholder="Password" name="password" value={formData.password} onChange={handleInput} />
-                        
-                        <div style={{ textAlign: 'right', marginBottom: '1.5rem', fontSize: '0.85rem' }}>
-                            <span style={{ color: 'var(--text-muted)', cursor: 'pointer' }} onClick={() => { setView('forgotPassword'); setAlertMsg({text:'', type:''}); }}>Forgot password?</span>
-                        </div>
-                        
-                        <button className="btn btn-primary" type="submit" disabled={loading}>
-                            {loading ? <i className="fas fa-circle-notch fa-spin"></i> : <i className="fas fa-sign-in-alt"></i>}
-                            {loading ? ' Signing In...' : ' Sign In'}
-                        </button>
-                    </form>
-                )}
-
-                {view === 'register' && (
-                    <form onSubmit={handleRegisterSubmit}>
-                        <Input icon="fa-user" type="text" placeholder="Full Name" name="name" value={formData.name} onChange={handleInput} />
-                        <Input icon="fa-envelope" type="email" placeholder="Email Address" name="email" value={formData.email} onChange={handleInput} />
-                        <Input icon="fa-lock" type="password" placeholder="Password" name="password" value={formData.password} onChange={handleInput} />
-                        
-                        <PasswordStrengthMeter password={formData.password} />
-                        
-                        <button className="btn btn-primary" type="submit" disabled={loading}>
-                            {loading ? <i className="fas fa-circle-notch fa-spin"></i> : <i className="fas fa-user-plus"></i>}
-                            {loading ? ' Creating...' : ' Create Account'}
-                        </button>
-                    </form>
-                )}
-
-                {view === 'forgotPassword' && (
-                    <form onSubmit={handleForgotPasswordSubmit}>
-                        <Input icon="fa-envelope" type="email" placeholder="Email Address" name="email" value={formData.email} onChange={handleInput} />
-                        <button className="btn btn-primary" type="submit" disabled={loading}>
-                            {loading ? <i className="fas fa-circle-notch fa-spin"></i> : <i className="fas fa-paper-plane"></i>}
-                            {loading ? ' Sending...' : ' Send Reset Code'}
-                        </button>
-                        <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.85rem', cursor: 'pointer', color: 'var(--text-muted)' }} onClick={() => { setView('login'); setAlertMsg({text:'', type:''}); }}>
-                            <i className="fas fa-arrow-left"></i> Back to sign in
-                        </div>
-                    </form>
-                )}
-
-                {view === 'resetPassword' && (
-                    <form onSubmit={handleResetPasswordSubmit}>
-                        <Input icon="fa-key" type="text" placeholder="6-digit OTP Code" name="otp_code" value={formData.otp_code || ''} onChange={handleInput} />
-                        <Input icon="fa-lock" type="password" placeholder="New Password" name="new_password" value={formData.new_password || ''} onChange={handleInput} />
-                        
-                        <PasswordStrengthMeter password={formData.new_password || ''} />
-                        <button className="btn btn-primary" type="submit" disabled={loading}>
-                            {loading ? <i className="fas fa-circle-notch fa-spin"></i> : <i className="fas fa-check"></i>}
-                            {loading ? ' Resetting...' : ' Reset Password'}
-                        </button>
-                    </form>
-                )}
-
-                {(view === 'login' || view === 'register') && (
-                    <React.Fragment>
-                        <div className="divider">Or continue with</div>
-                        <div style={{ display: 'flex', gap: '1rem' }}>
-                            <button className="btn btn-social" style={{ flex: 1 }} type="button" onClick={() => handleSocialLogin('google')} disabled={loading}>
-                                <i className="fab fa-google" style={{ color: '#ea4335' }}></i> Google
-                            </button>
-                            <button className="btn btn-social" style={{ flex: 1 }} type="button" onClick={() => handleSocialLogin('apple')} disabled={loading}>
-                                <i className="fab fa-apple"></i> Apple
-                            </button>
-                        </div>
-                        <div className="toggle-view">
-                            {view === 'login' ? (
-                                <p>Don't have an account? <span onClick={() => { setView('register'); setAlertMsg({text:'', type:''}); }}>Sign up</span></p>
-                            ) : (
-                                <p>Already have an account? <span onClick={() => { setView('login'); setAlertMsg({text:'', type:''}); }}>Sign in</span></p>
-                            )}
-                        </div>
-                    </React.Fragment>
-                )}
-            </div>
-
-            {/* OTP Popup Overlay */}
-            {showOTP && (
-                <OTPPopup 
-                    email={formData.email}
-                    onVerify={handleVerifyOTP}
-                    onResend={async () => {
-                        try {
-                            const res = await fetch('/auth/resend-otp', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ email: formData.email })
-                            });
-                            const data = await res.json();
-                            if (!res.ok) throw new Error(data.detail || 'Resend failed');
-                            alert(data.message);
-                        } catch (err) {
-                            alert(err.message);
-                        }
-                    }}
-                    onCancel={() => setShowOTP(false)}
-                />
-            )}
-        </div>
-    );
-}
-
-
-
-function SettingsModal({ user, onClose, onUpdate }) {
-    const [name, setName] = useState(user?.full_name || '');
-    const [loading, setLoading] = useState(false);
-    const [msg, setMsg] = useState({ text: '', type: '' });
-
-    const handleSave = async () => {
-        setLoading(true);
-        try {
-            const token = localStorage.getItem('bowen_token');
-            const res = await fetch('/auth/me', {
-                method: 'PUT',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ full_name: name })
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.detail || 'Update failed');
-            
-            setMsg({ text: 'Profile updated!', type: 'success' });
-            onUpdate({ ...user, full_name: name });
-            setTimeout(onClose, 1000);
-        } catch (err) {
-            setMsg({ text: err.message, type: 'error' });
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="settings-modal" onClick={e => e.stopPropagation()}>
-                <div className="settings-header">
-                    <h3 style={{ fontSize: '1.5rem', fontWeight: 600 }}>Settings</h3>
-                    <button className="hamburger" onClick={onClose}><i className="fas fa-xmark"></i></button>
-                </div>
-
-                <TopAlert message={msg.text} type={msg.type} />
-
-                <div className="settings-row">
-                    <label className="settings-label">Full Name</label>
-                    <input 
-                        className="input-field" 
-                        style={{ paddingLeft: '1rem' }}
-                        value={name}
-                        onChange={e => setName(e.target.value)}
-                    />
-                </div>
-
-                <div className="settings-row">
-                    <label className="settings-label">Email Address (Read-only)</label>
-                    <input 
-                        className="input-field" 
-                        style={{ paddingLeft: '1rem', opacity: 0.6 }}
-                        value={user?.email || ''}
-                        disabled
-                    />
-                </div>
-
-                <button 
-                    className="btn btn-primary" 
-                    onClick={handleSave} 
-                    disabled={loading || name === user?.full_name}
-                    style={{ marginTop: '1rem' }}
-                >
-                    {loading ? <i className="fas fa-circle-notch fa-spin"></i> : <i className="fas fa-save"></i>}
-                    {loading ? ' Saving...' : ' Save Changes'}
-                </button>
-            </div>
-        </div>
-    );
-}
-function Sidebar({ isOpen, onClose, user, onLogout, toggleTheme, isDarkMode, sessions, currentSessionId, onSelectSession, onNewChat, onAuthRequired }) {
-    return (
-        <React.Fragment>
-            <div className={`sidebar-overlay ${isOpen ? 'active' : ''}`} onClick={onClose}></div>
-            <div className={`sidebar ${isOpen ? 'open' : 'closed'}`}>
-                <div className="sidebar-header" style={{ justifyContent: 'space-between' }}>
-                    <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Bowen AI</h2>
-                    <button className="hamburger mobile-only" onClick={onClose}>
-                        <i className="fas fa-xmark"></i>
-                    </button>
-                </div>
-            
-            <div className="sidebar-content">
-                <button className="new-chat-btn" onClick={() => { onNewChat(); if(window.innerWidth < 768) onClose(); }}>
-                    <i className="fas fa-plus"></i>
-                    New chat
-                </button>
-                
-                <div style={{ marginTop: '2rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                    <p style={{ padding: '0.5rem', fontWeight: 500, opacity: 0.8 }}>Recent</p>
-                    <div className="history-list">
-                        {!user ? (
-                            <div className="guest-sidebar-msg">
-                                <p>Join Bowen AI to sync your history across devices and unlock unlimited questions.</p>
-                            </div>
-                        ) : sessions && sessions.length > 0 ? (
-                            sessions.map(s => (
-                                <div 
-                                    key={s.id} 
-                                    className={`sidebar-item history-item ${currentSessionId === s.id ? 'active' : ''}`}
-                                    onClick={() => { onSelectSession(s.id); if(window.innerWidth < 768) onClose(); }}
-                                >
-                                    <i className="fas fa-message"></i>
-                                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.title}</span>
-                                </div>
-                            ))
-                        ) : (
-                            <p style={{ padding: '0.5rem', opacity: 0.5 }}>No recent chats</p>
-                        )}
-                    </div>
-                </div>
-            </div>
-            
-            <div className="sidebar-footer">
-                <div className="sidebar-item" onClick={toggleTheme}>
-                    <i className={`fas ${isDarkMode ? 'fa-sun' : 'fa-moon'}`}></i>
-                    <span>{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
-                </div>
-                {!user ? (
-                    <div className="sidebar-item" style={{ color: 'var(--primary)' }} onClick={onAuthRequired}>
-                        <i className="fas fa-sign-in-alt"></i>
-                        <span>Sign In</span>
-                    </div>
-                ) : (
-                    <React.Fragment>
-                        <div className="sidebar-item" onClick={() => window.openSettings()}>
-                            <i className="fas fa-gear"></i>
-                            <span>Settings</span>
-                        </div>
-                        <div className="sidebar-item" style={{ color: '#fca5a5' }} onClick={onLogout}>
-                            <i className="fas fa-sign-out-alt"></i>
-                            <span>Sign Out</span>
-                        </div>
-                    </React.Fragment>
-                )}
-                
-                <div className="sidebar-item" style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '1rem' }} onClick={() => window.location.href='/admin.html'}>
-                    <i className="fas fa-shield-halved"></i>
-                    <span style={{ fontWeight: 600 }}>Login as Admin</span>
-                </div>
-            </div>
-        </div>
-    </React.Fragment>
-);
-}
-
-
-function ChatApp({ token, onLogout, toggleTheme, isDarkMode, onAuthRequired }) {
-    const isGuest = !token;
-    const [user, setUser] = useState(null);
-    const [sessions, setSessions] = useState([]);
-    const [currentSessionId, setCurrentSessionId] = useState(null);
-    const [messages, setMessages] = useState([]);
-    const [input, setInput] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 768);
-    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-    const [guestLimitReached, setGuestLimitReached] = useState(false);
-    const messagesEndRef = useRef(null);
-
-    // Track guest count in localStorage
-    const getGuestCount = () => parseInt(localStorage.getItem('bowen_guest_count') || '0');
-    const incrementGuestCount = () => {
-        const current = getGuestCount();
-        localStorage.setItem('bowen_guest_count', (current + 1).toString());
-        return current + 1;
-    };
-
-
-    // Global bridge for sidebar click
-    useEffect(() => {
-        window.openSettings = () => setIsSettingsOpen(true);
-    }, []);
-
-
-    useEffect(() => {
-        if (!token) return;
-        fetch('/auth/me', {
-            headers: { 'Authorization': `Bearer ${token}` }
-        })
-        .then(res => res.json())
-        .then(data => setUser(data))
-        .catch(() => onLogout());
-
-        fetchSessions();
-    }, [token]);
-
-    const fetchSessions = async () => {
-        try {
-            const res = await fetch('/user/sessions', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await res.json();
-            setSessions(data);
-        } catch (e) { console.error("Failed to fetch sessions", e); }
-    };
-
-    const loadSession = async (sid) => {
-        setLoading(true);
-        setCurrentSessionId(sid);
-        try {
-            const res = await fetch(`/user/sessions/${sid}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await res.json();
-            setMessages(data.messages);
-        } catch (e) { console.error("Failed to load session", e); }
-        finally { setLoading(false); }
-    };
-
-    const startNewChat = () => {
-        setCurrentSessionId(null);
-        setMessages([]);
-    };
-
-
-    useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
-
-    const handleSend = async (e) => {
-        e.preventDefault();
-        if (!input.trim() || loading) return;
-        
-        const newMsg = { role: 'user', content: input };
-        setMessages(prev => [...prev, newMsg]);
-        setInput('');
-        setLoading(true);
-
-        try {
-            const count = getGuestCount();
-            if (isGuest && count >= 5) {
-                setGuestLimitReached(true);
-                setLoading(false);
-                return;
-            }
-
-            const endpoint = isGuest ? '/user/guest/ask' : '/user/ask';
-            const headers = { 'Content-Type': 'application/json' };
-            if (!isGuest) headers['Authorization'] = `Bearer ${token}`;
-
-            const res = await fetch(endpoint, {
-                method: 'POST',
-                headers: headers,
-                body: JSON.stringify({ 
-                    question: newMsg.content,
-                    session_id: currentSessionId
-                })
-            });
-            
-            // Add initial empty AI message
-            setMessages(prev => [...prev, { role: 'ai', content: '' }]);
-            
-            const reader = res.body.getReader();
-            const decoder = new TextDecoder('utf-8');
-            let buffer = '';
-            
-            while (true) {
-                const { value, done } = await reader.read();
-                if (done) break;
-                buffer += decoder.decode(value, { stream: true });
-                
-                let lines = buffer.split('\n');
-                buffer = lines.pop(); // Keep partial line in buffer
-                
-                for (const line of lines) {
-                    if (!line.trim()) continue;
-                    try {
-                        const data = JSON.parse(line);
-                        if (data.type === 'token') {
-                            setMessages(prev => {
-                                const newMsgs = [...prev];
-                                newMsgs[newMsgs.length - 1].content += data.content;
-                                return newMsgs;
-                            });
-                        } else if (data.type === 'session_info') {
-                            setCurrentSessionId(data.session_id);
-                            fetchSessions(); // Refresh sidebar
-                        }
-                    } catch(e) {}
-                }
-            }
-        } catch (err) {
-            setMessages(prev => [...prev, { role: 'ai', content: `Error: ${err.message}` }]);
-        } finally {
-            if (isGuest) incrementGuestCount();
-            setLoading(false);
-        }
-    };
-
-    return (
-        <div className="app-container">
-            <Sidebar 
-                isOpen={isSidebarOpen} 
-                onClose={() => setIsSidebarOpen(false)}
-                user={user} 
-                onLogout={onLogout} 
-                toggleTheme={toggleTheme} 
-                isDarkMode={isDarkMode} 
-                sessions={sessions}
-                currentSessionId={currentSessionId}
-                onSelectSession={loadSession}
-                onNewChat={startNewChat}
-                onAuthRequired={onAuthRequired}
-            />
-
-            
-            <div className="main-wrapper">
-                <nav className="navbar">
-                    <div className="nav-left">
-                        <button className="hamburger" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
-                            <i className="fas fa-bars"></i>
-                        </button>
-                        <h2 style={{ fontSize: '1.1rem', fontWeight: 500, margin: 0 }}>
-                            Bowen AI <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginLeft: '0.5rem' }}>1.0</span>
-                        </h2>
-                    </div>
-                <div className="nav-right">
-                        {isGuest ? (
-                            <button className="btn-signin-nav" onClick={onAuthRequired}>
-                                <i className="fas fa-sign-in-alt"></i> Sign In
-                            </button>
-                        ) : (
-                            <div className="avatar" style={{ width: '32px', height: '32px', cursor: 'pointer' }} onClick={() => setIsSettingsOpen(true)}>
-                                {user?.full_name?.charAt(0) || 'U'}
-                            </div>
-                        )}
-                    </div>
-                </nav>
-
-                <main className="chat-viewport">
-                    {messages.length === 0 ? (
-                        <div className="hero-section">
-                            <h1 className="hero-line-1">
-                                {isGuest ? 'Hi there!' : `Hi there, ${user?.full_name?.split(' ')[0] || 'there'}`}
-                            </h1>
-                            <h1 className="hero-line-2">How can I help you today?</h1>
-                            {isGuest && <p style={{ color: 'var(--text-muted)', marginTop: '1.5rem', opacity: 0.8 }}>Try Bowen AI Core - 5 free questions allowed.</p>}
-                        </div>
-                    ) : (
-                        <div className="messages-container">
-                            {messages.map((msg, idx) => (
-                                <div key={idx} className={`message-wrapper ${msg.role}`}>
-                                    <div className="message-avatar">
-                                        <i className={`fas ${msg.role === 'ai' ? 'fa-robot' : 'fa-user'}`}></i>
-                                    </div>
-                                    <div className="message-content">
-                                        {msg.content || (loading && idx === messages.length - 1 ? "..." : "")}
-                                    </div>
-                                </div>
-                            ))}
-                            <div ref={messagesEndRef} />
-                        </div>
-                    )}
-                </main>
-
-                <div className="input-container-fixed">
-                    <form className="search-pill" onSubmit={handleSend}>
-                        <input 
-                            placeholder="Ask Bowen AI..." 
-                            value={input}
-                            onChange={e => setInput(e.target.value)}
-                            disabled={loading}
-                        />
-                        <button className="send-btn" type="submit" disabled={loading || !input.trim()}>
-                            <i className={`fas ${loading ? 'fa-circle-notch fa-spin' : 'fa-arrow-up'}`}></i>
-                        </button>
-                    </form>
-                </div>
-
-                {isSettingsOpen && (
-                    <SettingsModal 
-                        user={user} 
-                        onClose={() => setIsSettingsOpen(false)} 
-                        onUpdate={setUser} 
-                    />
-                )}
-
-                {/* Limit Reached Modal */}
-                {guestLimitReached && (
-                    <div className="limit-overlay">
-                        <div className="limit-card">
-                            <i className="fas fa-lock" style={{ fontSize: '3rem', color: 'var(--primary)', marginBottom: '1.5rem' }}></i>
-                            <h2 style={{ marginBottom: '1rem' }}>Free limit reached!</h2>
-                            <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>
-                                You've used your 5 free questions. Join Bowen AI to continue asking questions and save your history.
-                            </p>
-                            <button className="btn btn-primary" onClick={onAuthRequired}>
-                                Sign In / Join Now
-                            </button>
-                        </div>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-}
-
-function Main() {
-    const [token, setToken] = useState(localStorage.getItem('bowen_token'));
-    const [view, setView] = useState('chat'); // 'chat' or 'auth'
-    const [isDarkMode, setIsDarkMode] = useState(true);
-
-    const toggleTheme = () => {
-        setIsDarkMode(!isDarkMode);
-        document.body.classList.toggle('light-mode');
-    };
-
-    const handleLogin = (newToken) => {
-        localStorage.setItem('bowen_token', newToken);
-        setToken(newToken);
-        setView('chat'); 
-    };
-
-    const handleLogout = () => {
-        localStorage.removeItem('bowen_token');
-        setToken(null);
-        setView('auth');
-    };
-
-    if (token) {
-        return <ChatApp token={token} onLogout={handleLogout} toggleTheme={toggleTheme} isDarkMode={isDarkMode} />;
-    }
-    
-    if (view === 'auth') {
-        return <AuthApp onLogin={handleLogin} toggleTheme={toggleTheme} isDarkMode={isDarkMode} onBack={() => setView('chat')} />;
-    }
-    
-    return (
-        <ChatApp 
-            token={null} 
-            onLogout={handleLogout} 
-            toggleTheme={toggleTheme} 
-            isDarkMode={isDarkMode} 
-            onAuthRequired={() => setView('auth')} 
-        />
-    );
-}
-
-class ErrorBoundary extends React.Component {
-    constructor(props) {
-        super(props);
-        this.state = { hasError: false, error: null };
-    }
-    static getDerivedStateFromError(error) {
-        return { hasError: true, error: error };
-    }
-    componentDidCatch(error, errorInfo) {
-        console.error("React Error Boundary caught an error", error, errorInfo);
-    }
-    render() {
-        if (this.state.hasError) {
+        function Input({ icon, type, placeholder, name, value, onChange }) {
             return (
-                <div style={{ padding: '2rem', color: '#ff5555', background: '#222', zIndex: 9999, position: 'relative' }}>
-                    <h2>React Crashed 💥</h2>
-                    <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
-                        {this.state.error && this.state.error.toString()}
-                    </pre>
-                    <p>Check the console for more details.</p>
+                <div className="input-group">
+                    <input
+                        className="input-field"
+                        type={type}
+                        placeholder={placeholder}
+                        name={name}
+                        value={value}
+                        onChange={onChange}
+                        required
+                    />
+                    <i className={`fas ${icon} input-icon`}></i>
                 </div>
             );
         }
-        return this.props.children; 
-    }
-}
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(
-    <ErrorBoundary>
-        <Main />
-    </ErrorBoundary>
-);
+        function PasswordStrengthMeter({ password }) {
+            if (!password) return null;
 
-</script>
+            const getStrength = (pwd) => {
+                let score = 0;
+                if (pwd.length >= 8) score++;
+                if (/[0-9]/.test(pwd)) score++;
+                if (/[^A-Za-z0-9]/.test(pwd)) score++;
+                if (/[A-Z]/.test(pwd) && /[a-z]/.test(pwd)) score++;
+                return score;
+            };
+
+            const score = getStrength(password);
+            let label = "";
+            let activeClass = "";
+            let color = "";
+
+            if (score <= 1) {
+                label = "Weak";
+                activeClass = "segment-active-weak";
+                color = "#ef4444";
+            } else if (score === 2) {
+                label = "Strong";
+                activeClass = "segment-active-strong";
+                color = "#f97316";
+            } else {
+                label = "Very Strong";
+                activeClass = "segment-active-very-strong";
+                color = "#22c55e";
+            }
+
+            return (
+                <div className="strength-meter">
+                    <div className="volume-bar-container">
+                        <div className={`volume-segment ${score >= 1 ? activeClass : ''}`}></div>
+                        <div className={`volume-segment ${score >= 2 ? activeClass : ''}`}></div>
+                        <div className={`volume-segment ${score >= 3 ? activeClass : ''}`}></div>
+                    </div>
+                    <div className="strength-text">
+                        <span style={{ color: color }}>{label}</span>
+                        <span style={{ opacity: 0.6 }}>Password Strength</span>
+                    </div>
+                </div>
+            );
+        }
+
+        function TopAlert({ message, type }) {
+            if (!message) return null;
+            const style = {
+                padding: '0.75rem',
+                borderRadius: '8px',
+                marginBottom: '1.5rem',
+                fontSize: '0.9rem',
+                textAlign: 'center',
+                background: type === 'error' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)',
+                border: `1px solid ${type === 'error' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(34, 197, 94, 0.3)'}`,
+                color: type === 'error' ? '#fca5a5' : '#86efac'
+            };
+            return <div style={style}>{message}</div>;
+        }
+
+        function OTPPopup({ email, onVerify, onResend, onCancel }) {
+            const [otp, setOtp] = useState(['', '', '', '', '', '']);
+            const [timer, setTimer] = useState(60);
+            const inputs = useRef([]);
+
+            useEffect(() => {
+                if (timer <= 0) return;
+                const interval = setInterval(() => {
+                    setTimer(prev => prev - 1);
+                }, 1000);
+                return () => clearInterval(interval);
+            }, [timer]);
+
+            const handleChange = (e, index) => {
+                const val = e.target.value;
+                if (isNaN(val)) return;
+
+                const newOtp = [...otp];
+                newOtp[index] = val.substring(val.length - 1);
+                setOtp(newOtp);
+
+                // Move to next input
+                if (val && index < 5) {
+                    inputs.current[index + 1].focus();
+                }
+            };
+
+            const handleKeyDown = (e, index) => {
+                if (e.key === 'Backspace' && !otp[index] && index > 0) {
+                    inputs.current[index - 1].focus();
+                }
+            };
+
+            const handleVerifyCode = () => {
+                const code = otp.join('');
+                if (code.length === 6) {
+                    onVerify(code);
+                } else {
+                    alert('Please enter a 6-digit code');
+                }
+            };
+
+            const handleResendClick = () => {
+                setTimer(60);
+                onResend();
+            };
+
+            return (
+                <div className="overlay" style={{ animation: 'fadeIn 0.3s forwards' }}>
+                    <div className="otp-popup">
+                        <i className="fas fa-shield-halved otp-icon"></i>
+                        <h3>Authenticate OTP</h3>
+                        <p>We've sent a 6-digit verification code to <br /><strong>{email || 'your email'}</strong></p>
+
+                        <div className="otp-inputs">
+                            {otp.map((digit, index) => (
+                                <input
+                                    key={index}
+                                    type="text"
+                                    maxLength="1"
+                                    className="otp-digit"
+                                    value={digit}
+                                    onChange={(e) => handleChange(e, index)}
+                                    onKeyDown={(e) => handleKeyDown(e, index)}
+                                    ref={(el) => (inputs.current[index] = el)}
+                                />
+                            ))}
+                        </div>
+
+                        <div style={{ marginBottom: '1.5rem', fontWeight: 600, color: timer > 0 ? 'var(--primary)' : '#fca5a5' }}>
+                            {timer > 0 ? (
+                                <span><i className="fas fa-clock"></i> Expires in {timer}s</span>
+                            ) : (
+                                <span><i className="fas fa-circle-exclamation"></i> Code expired</span>
+                            )}
+                        </div>
+
+                        {/* BIG Button for submit */}
+                        <button
+                            className="btn btn-primary"
+                            onClick={handleVerifyCode}
+                            style={{ padding: '1.2rem', fontSize: '1.1rem', opacity: timer > 0 ? 1 : 0.6 }}
+                            disabled={timer <= 0}
+                        >
+                            <i className="fas fa-check-circle"></i> {timer > 0 ? 'Verify' : 'Code Expired'}
+                        </button>
+
+                        {/* SMALL Button to resend */}
+                        <button className="btn-resend" onClick={handleResendClick}>
+                            Didn't receive it? Resend OTP
+                        </button>
+
+                        <div style={{ marginTop: '1.5rem', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '0.8rem' }} onClick={onCancel}>
+                            <i className="fas fa-arrow-left"></i> Back to sign in
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function AuthApp({ onLogin, toggleTheme, isDarkMode, onBack }) {
+            const [view, setView] = useState('login'); // 'login' or 'register'
+            const [showOTP, setShowOTP] = useState(false);
+            const [formData, setFormData] = useState({ name: '', email: '', password: '' });
+            const [loading, setLoading] = useState(false);
+            const [alertMsg, setAlertMsg] = useState({ text: '', type: '' });
+
+            const handleInput = (e) => {
+                setFormData({ ...formData, [e.target.name]: e.target.value });
+            };
+
+            const handleRegisterSubmit = async (e) => {
+                e.preventDefault();
+                setLoading(true);
+                setAlertMsg({ text: '', type: '' });
+
+                try {
+                    const res = await fetch('/auth/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            full_name: formData.name,
+                            email: formData.email,
+                            password: formData.password
+                        })
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.detail || 'Registration failed');
+
+                    setAlertMsg({ text: data.message, type: 'success' });
+                    setShowOTP(true);
+                } catch (err) {
+                    setAlertMsg({ text: err.message, type: 'error' });
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const handleLoginSubmit = async (e) => {
+                e.preventDefault();
+                setLoading(true);
+                setAlertMsg({ text: '', type: '' });
+
+                try {
+                    const res = await fetch('/auth/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            email: formData.email,
+                            password: formData.password
+                        })
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.detail || 'Login failed');
+
+                    localStorage.setItem('bowen_token', data.access_token);
+                    setAlertMsg({ text: data.message || 'Sign in successful! Entering platform...', type: 'success' });
+
+                    setTimeout(() => {
+                        onLogin(data.access_token);
+                    }, 1500);
+                } catch (err) {
+                    if (err.message.includes('verify your email') || err.message.includes('OTP')) {
+                        setShowOTP(true);
+                        setAlertMsg({ text: err.message, type: 'error' });
+                    } else {
+                        setAlertMsg({ text: err.message, type: 'error' });
+                    }
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const handleVerifyOTP = async (code) => {
+                setLoading(true);
+                try {
+                    const res = await fetch('/auth/verify-otp', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            email: formData.email,
+                            otp_code: code
+                        })
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.detail || 'Verification failed');
+
+                    if (data.access_token) {
+                        setShowOTP(false);
+                        setAlertMsg({ text: data.message || 'Account verified successfully! Logging you in...', type: 'success' });
+                        localStorage.setItem('bowen_token', data.access_token);
+                        setTimeout(() => {
+                            onLogin(data.access_token);
+                        }, 1500);
+                    } else {
+                        setShowOTP(false);
+                        setView('login');
+                        setAlertMsg({ text: 'Account verified successfully! Please log in.', type: 'success' });
+                    }
+                } catch (err) {
+                    alert(err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const handleForgotPasswordSubmit = async (e) => {
+                e.preventDefault();
+                setLoading(true);
+                setAlertMsg({ text: '', type: '' });
+                try {
+                    const res = await fetch('/auth/forgot-password', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: formData.email })
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.detail || 'Request failed');
+
+                    setAlertMsg({ text: data.message, type: 'success' });
+                    setView('resetPassword');
+                } catch (err) {
+                    setAlertMsg({ text: err.message, type: 'error' });
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const handleResetPasswordSubmit = async (e) => {
+                e.preventDefault();
+                setLoading(true);
+                setAlertMsg({ text: '', type: '' });
+                try {
+                    const res = await fetch('/auth/reset-password', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            email: formData.email,
+                            otp_code: formData.otp_code,
+                            new_password: formData.new_password
+                        })
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.detail || 'Reset failed');
+
+                    setAlertMsg({ text: data.message + ' Please log in.', type: 'success' });
+                    setView('login');
+                } catch (err) {
+                    setAlertMsg({ text: err.message, type: 'error' });
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const handleSocialLogin = async (providerType) => {
+                setLoading(true);
+                setAlertMsg({ text: '', type: '' });
+
+                // REAL CONFIG - from Firebase Console
+                const firebaseConfig = {
+                    apiKey: "AIzaSyCVr89Gbx76jG9V12Hh_wrb6b5b5o5PB-0",
+                    authDomain: "bowen-assistant-2ab72.firebaseapp.com",
+                    projectId: "bowen-assistant-2ab72",
+                    storageBucket: "bowen-assistant-2ab72.firebasestorage.app",
+                    messagingSenderId: "129461512801",
+                    appId: "1:129461512801:web:625d1f4bbd2b5efa985820"
+                };
+
+                if (!window.firebase) {
+                    setAlertMsg({ text: 'Social Login SDK not loaded. Please refresh or check your connection.', type: 'error' });
+                    setLoading(false);
+                    return;
+                }
+
+                if (!window.firebase.apps.length) {
+                    window.firebase.initializeApp(firebaseConfig);
+                }
+
+                try {
+                    const provider = providerType === 'google'
+                        ? new window.firebase.auth.GoogleAuthProvider()
+                        : new window.firebase.auth.OAuthProvider('apple.com');
+
+                    const result = await window.firebase.auth().signInWithPopup(provider);
+                    const idToken = await result.user.getIdToken();
+
+                    const res = await fetch('/auth/social-login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ firebase_id_token: idToken })
+                    });
+                    const data = await res.json();
+
+                    if (!res.ok) throw new Error(data.detail || 'Social Login failed');
+
+                    if (data.requires_otp) {
+                        setFormData({ ...formData, email: result.user.email });
+                        setShowOTP(true);
+                        setAlertMsg({ text: data.message, type: 'success' });
+                    } else {
+                        localStorage.setItem('bowen_token', data.access_token);
+                        setAlertMsg({ text: 'Social Login successful! Redirecting...', type: 'success' });
+                        setTimeout(() => { onLogin(data.access_token); }, 1000);
+                    }
+                } catch (err) {
+                    console.error(err);
+                    if (err.code !== 'auth/popup-closed-by-user') {
+                        setAlertMsg({ text: err.message || 'Firebase Auth failed.', type: 'error' });
+                    }
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <div className="auth-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100dvh', width: '100%' }}>
+                    <button className="theme-toggle" onClick={toggleTheme} type="button">
+                        <i className={`fas ${isDarkMode ? 'fa-sun' : 'fa-moon'}`}></i>
+                    </button>
+                    {/* The main authentication card */}
+                    <div className="glass-card" key={view}>
+                        <div className="card-header">
+                            <h2 className="card-title">
+                                {view === 'login' ? 'Welcome Back' :
+                                    view === 'register' ? 'Create Account' :
+                                        view === 'forgotPassword' ? 'Reset Password' : 'New Password'}
+                            </h2>
+                            <p className="card-subtitle">
+                                {view === 'login'
+                                    ? 'Enter your credentials to access Bowen AI'
+                                    : view === 'register'
+                                        ? 'Join our cutting-edge AI platform today'
+                                        : view === 'forgotPassword'
+                                            ? 'Enter your email to receive a reset code'
+                                            : 'Enter the OTP and your new password'}
+                            </p>
+                        </div>
+
+                        <TopAlert message={alertMsg.text} type={alertMsg.type} />
+
+                        <div style={{ position: 'absolute', top: '1.5rem', left: '1.5rem' }}>
+                            <button className="hamburger" onClick={onBack} title="Back to free chat">
+                                <i className="fas fa-arrow-left"></i>
+                            </button>
+                        </div>
+
+                        {view === 'login' && (
+                            <form onSubmit={handleLoginSubmit}>
+                                <Input icon="fa-envelope" type="email" placeholder="Email Address" name="email" value={formData.email} onChange={handleInput} />
+                                <Input icon="fa-lock" type="password" placeholder="Password" name="password" value={formData.password} onChange={handleInput} />
+
+                                <div style={{ textAlign: 'right', marginBottom: '1.5rem', fontSize: '0.85rem' }}>
+                                    <span style={{ color: 'var(--text-muted)', cursor: 'pointer' }} onClick={() => { setView('forgotPassword'); setAlertMsg({ text: '', type: '' }); }}>Forgot password?</span>
+                                </div>
+
+                                <button className="btn btn-primary" type="submit" disabled={loading}>
+                                    {loading ? <i className="fas fa-circle-notch fa-spin"></i> : <i className="fas fa-sign-in-alt"></i>}
+                                    {loading ? ' Signing In...' : ' Sign In'}
+                                </button>
+                            </form>
+                        )}
+
+                        {view === 'register' && (
+                            <form onSubmit={handleRegisterSubmit}>
+                                <Input icon="fa-user" type="text" placeholder="Full Name" name="name" value={formData.name} onChange={handleInput} />
+                                <Input icon="fa-envelope" type="email" placeholder="Email Address" name="email" value={formData.email} onChange={handleInput} />
+                                <Input icon="fa-lock" type="password" placeholder="Password" name="password" value={formData.password} onChange={handleInput} />
+
+                                <PasswordStrengthMeter password={formData.password} />
+
+                                <button className="btn btn-primary" type="submit" disabled={loading}>
+                                    {loading ? <i className="fas fa-circle-notch fa-spin"></i> : <i className="fas fa-user-plus"></i>}
+                                    {loading ? ' Creating...' : ' Create Account'}
+                                </button>
+                            </form>
+                        )}
+
+                        {view === 'forgotPassword' && (
+                            <form onSubmit={handleForgotPasswordSubmit}>
+                                <Input icon="fa-envelope" type="email" placeholder="Email Address" name="email" value={formData.email} onChange={handleInput} />
+                                <button className="btn btn-primary" type="submit" disabled={loading}>
+                                    {loading ? <i className="fas fa-circle-notch fa-spin"></i> : <i className="fas fa-paper-plane"></i>}
+                                    {loading ? ' Sending...' : ' Send Reset Code'}
+                                </button>
+                                <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.85rem', cursor: 'pointer', color: 'var(--text-muted)' }} onClick={() => { setView('login'); setAlertMsg({ text: '', type: '' }); }}>
+                                    <i className="fas fa-arrow-left"></i> Back to sign in
+                                </div>
+                            </form>
+                        )}
+
+                        {view === 'resetPassword' && (
+                            <form onSubmit={handleResetPasswordSubmit}>
+                                <Input icon="fa-key" type="text" placeholder="6-digit OTP Code" name="otp_code" value={formData.otp_code || ''} onChange={handleInput} />
+                                <Input icon="fa-lock" type="password" placeholder="New Password" name="new_password" value={formData.new_password || ''} onChange={handleInput} />
+
+                                <PasswordStrengthMeter password={formData.new_password || ''} />
+                                <button className="btn btn-primary" type="submit" disabled={loading}>
+                                    {loading ? <i className="fas fa-circle-notch fa-spin"></i> : <i className="fas fa-check"></i>}
+                                    {loading ? ' Resetting...' : ' Reset Password'}
+                                </button>
+                            </form>
+                        )}
+
+                        {(view === 'login' || view === 'register') && (
+                            <React.Fragment>
+                                <div className="divider">Or continue with</div>
+                                <div style={{ display: 'flex', gap: '1rem' }}>
+                                    <button className="btn btn-social" style={{ flex: 1 }} type="button" onClick={() => handleSocialLogin('google')} disabled={loading}>
+                                        <i className="fab fa-google" style={{ color: '#ea4335' }}></i> Google
+                                    </button>
+                                    <button className="btn btn-social" style={{ flex: 1 }} type="button" onClick={() => handleSocialLogin('apple')} disabled={loading}>
+                                        <i className="fab fa-apple"></i> Apple
+                                    </button>
+                                </div>
+                                <div className="toggle-view">
+                                    {view === 'login' ? (
+                                        <p>Don't have an account? <span onClick={() => { setView('register'); setAlertMsg({ text: '', type: '' }); }}>Sign up</span></p>
+                                    ) : (
+                                        <p>Already have an account? <span onClick={() => { setView('login'); setAlertMsg({ text: '', type: '' }); }}>Sign in</span></p>
+                                    )}
+                                </div>
+                            </React.Fragment>
+                        )}
+                    </div>
+
+                    {/* OTP Popup Overlay */}
+                    {showOTP && (
+                        <OTPPopup
+                            email={formData.email}
+                            onVerify={handleVerifyOTP}
+                            onResend={async () => {
+                                try {
+                                    const res = await fetch('/auth/resend-otp', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ email: formData.email })
+                                    });
+                                    const data = await res.json();
+                                    if (!res.ok) throw new Error(data.detail || 'Resend failed');
+                                    alert(data.message);
+                                } catch (err) {
+                                    alert(err.message);
+                                }
+                            }}
+                            onCancel={() => setShowOTP(false)}
+                        />
+                    )}
+                </div>
+            );
+        }
+
+
+
+        function SettingsModal({ user, onClose, onUpdate }) {
+            const [name, setName] = useState(user?.full_name || '');
+            const [loading, setLoading] = useState(false);
+            const [msg, setMsg] = useState({ text: '', type: '' });
+
+            const handleSave = async () => {
+                setLoading(true);
+                try {
+                    const token = localStorage.getItem('bowen_token');
+                    const res = await fetch('/auth/me', {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ full_name: name })
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.detail || 'Update failed');
+
+                    setMsg({ text: 'Profile updated!', type: 'success' });
+                    onUpdate({ ...user, full_name: name });
+                    setTimeout(onClose, 1000);
+                } catch (err) {
+                    setMsg({ text: err.message, type: 'error' });
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <div className="modal-overlay" onClick={onClose}>
+                    <div className="settings-modal" onClick={e => e.stopPropagation()}>
+                        <div className="settings-header">
+                            <h3 style={{ fontSize: '1.5rem', fontWeight: 600 }}>Settings</h3>
+                            <button className="hamburger" onClick={onClose}><i className="fas fa-xmark"></i></button>
+                        </div>
+
+                        <TopAlert message={msg.text} type={msg.type} />
+
+                        <div className="settings-row">
+                            <label className="settings-label">Full Name</label>
+                            <input
+                                className="input-field"
+                                style={{ paddingLeft: '1rem' }}
+                                value={name}
+                                onChange={e => setName(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="settings-row">
+                            <label className="settings-label">Email Address (Read-only)</label>
+                            <input
+                                className="input-field"
+                                style={{ paddingLeft: '1rem', opacity: 0.6 }}
+                                value={user?.email || ''}
+                                disabled
+                            />
+                        </div>
+
+                        <button
+                            className="btn btn-primary"
+                            onClick={handleSave}
+                            disabled={loading || name === user?.full_name}
+                            style={{ marginTop: '1rem' }}
+                        >
+                            {loading ? <i className="fas fa-circle-notch fa-spin"></i> : <i className="fas fa-save"></i>}
+                            {loading ? ' Saving...' : ' Save Changes'}
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+        function Sidebar({ isOpen, onClose, user, onLogout, toggleTheme, isDarkMode, sessions, currentSessionId, onSelectSession, onNewChat, onAuthRequired }) {
+            return (
+                <React.Fragment>
+                    <div className={`sidebar-overlay ${isOpen ? 'active' : ''}`} onClick={onClose}></div>
+                    <div className={`sidebar ${isOpen ? 'open' : 'closed'}`}>
+                        <div className="sidebar-header" style={{ justifyContent: 'space-between' }}>
+                            <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Bowen AI</h2>
+                            <button className="hamburger mobile-only" onClick={onClose}>
+                                <i className="fas fa-xmark"></i>
+                            </button>
+                        </div>
+
+                        <div className="sidebar-content">
+                            <button className="new-chat-btn" onClick={() => { onNewChat(); if (window.innerWidth < 768) onClose(); }}>
+                                <i className="fas fa-plus"></i>
+                                New chat
+                            </button>
+
+                            <div style={{ marginTop: '2rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                                <p style={{ padding: '0.5rem', fontWeight: 500, opacity: 0.8 }}>Recent</p>
+                                <div className="history-list">
+                                    {!user ? (
+                                        <div className="guest-sidebar-msg">
+                                            <p>Join Bowen AI to sync your history across devices and unlock unlimited questions.</p>
+                                        </div>
+                                    ) : sessions && sessions.length > 0 ? (
+                                        sessions.map(s => (
+                                            <div
+                                                key={s.id}
+                                                className={`sidebar-item history-item ${currentSessionId === s.id ? 'active' : ''}`}
+                                                onClick={() => { onSelectSession(s.id); if (window.innerWidth < 768) onClose(); }}
+                                            >
+                                                <i className="fas fa-message"></i>
+                                                <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.title}</span>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <p style={{ padding: '0.5rem', opacity: 0.5 }}>No recent chats</p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="sidebar-footer">
+                            <div className="sidebar-item" onClick={toggleTheme}>
+                                <i className={`fas ${isDarkMode ? 'fa-sun' : 'fa-moon'}`}></i>
+                                <span>{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
+                            </div>
+                            {!user ? (
+                                <div className="sidebar-item" style={{ color: 'var(--primary)' }} onClick={onAuthRequired}>
+                                    <i className="fas fa-sign-in-alt"></i>
+                                    <span>Sign In</span>
+                                </div>
+                            ) : (
+                                <React.Fragment>
+                                    <div className="sidebar-item" onClick={() => window.openSettings()}>
+                                        <i className="fas fa-gear"></i>
+                                        <span>Settings</span>
+                                    </div>
+                                    <div className="sidebar-item" style={{ color: '#fca5a5' }} onClick={onLogout}>
+                                        <i className="fas fa-sign-out-alt"></i>
+                                        <span>Sign Out</span>
+                                    </div>
+                                </React.Fragment>
+                            )}
+
+                            <div className="sidebar-item" style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '1rem' }} onClick={() => window.location.href = '/admin.html'}>
+                                <i className="fas fa-shield-halved"></i>
+                                <span style={{ fontWeight: 600 }}>Login as Admin</span>
+                            </div>
+                        </div>
+                    </div>
+                </React.Fragment>
+            );
+        }
+
+
+        function ChatApp({ token, onLogout, toggleTheme, isDarkMode, onAuthRequired }) {
+            const isGuest = !token;
+            const [user, setUser] = useState(null);
+            const [sessions, setSessions] = useState([]);
+            const [currentSessionId, setCurrentSessionId] = useState(null);
+            const [messages, setMessages] = useState([]);
+            const [input, setInput] = useState('');
+            const [loading, setLoading] = useState(false);
+            const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 768);
+            const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+            const [guestLimitReached, setGuestLimitReached] = useState(false);
+            const messagesEndRef = useRef(null);
+
+            // Track guest count in localStorage
+            const getGuestCount = () => parseInt(safeStorage.getItem('bowen_guest_count') || '0');
+            const incrementGuestCount = () => {
+                const current = getGuestCount();
+                safeStorage.setItem('bowen_guest_count', (current + 1).toString());
+                return current + 1;
+            };
+
+
+            // Global bridge for sidebar click
+            useEffect(() => {
+                window.openSettings = () => setIsSettingsOpen(true);
+            }, []);
+
+
+            useEffect(() => {
+                if (!token) return;
+                fetch('/auth/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                })
+                    .then(res => res.json())
+                    .then(data => setUser(data))
+                    .catch(() => onLogout());
+
+                fetchSessions();
+            }, [token]);
+
+            const fetchSessions = async () => {
+                try {
+                    const res = await fetch('/user/sessions', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await res.json();
+                    setSessions(data);
+                } catch (e) { console.error("Failed to fetch sessions", e); }
+            };
+
+            const loadSession = async (sid) => {
+                setLoading(true);
+                setCurrentSessionId(sid);
+                try {
+                    const res = await fetch(`/user/sessions/${sid}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await res.json();
+                    setMessages(data.messages);
+                } catch (e) { console.error("Failed to load session", e); }
+                finally { setLoading(false); }
+            };
+
+            const startNewChat = () => {
+                setCurrentSessionId(null);
+                setMessages([]);
+            };
+
+
+            useEffect(() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, [messages]);
+
+            const handleSend = async (e) => {
+                e.preventDefault();
+                if (!input.trim() || loading) return;
+
+                const newMsg = { role: 'user', content: input };
+                setMessages(prev => [...prev, newMsg]);
+                setInput('');
+                setLoading(true);
+
+                try {
+                    const count = getGuestCount();
+                    if (isGuest && count >= 5) {
+                        setGuestLimitReached(true);
+                        setLoading(false);
+                        return;
+                    }
+
+                    const endpoint = isGuest ? '/user/guest/ask' : '/user/ask';
+                    const headers = { 'Content-Type': 'application/json' };
+                    if (!isGuest) headers['Authorization'] = `Bearer ${token}`;
+
+                    const res = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: headers,
+                        body: JSON.stringify({
+                            question: newMsg.content,
+                            session_id: currentSessionId
+                        })
+                    });
+
+                    // Add initial empty AI message
+                    setMessages(prev => [...prev, { role: 'ai', content: '' }]);
+
+                    const reader = res.body.getReader();
+                    const decoder = new TextDecoder('utf-8');
+                    let buffer = '';
+
+                    while (true) {
+                        const { value, done } = await reader.read();
+                        if (done) break;
+                        buffer += decoder.decode(value, { stream: true });
+
+                        let lines = buffer.split('\n');
+                        buffer = lines.pop(); // Keep partial line in buffer
+
+                        for (const line of lines) {
+                            if (!line.trim()) continue;
+                            try {
+                                const data = JSON.parse(line);
+                                if (data.type === 'token') {
+                                    setMessages(prev => {
+                                        const newMsgs = [...prev];
+                                        newMsgs[newMsgs.length - 1].content += data.content;
+                                        return newMsgs;
+                                    });
+                                } else if (data.type === 'session_info') {
+                                    setCurrentSessionId(data.session_id);
+                                    fetchSessions(); // Refresh sidebar
+                                }
+                            } catch (e) { }
+                        }
+                    }
+                } catch (err) {
+                    setMessages(prev => [...prev, { role: 'ai', content: `Error: ${err.message}` }]);
+                } finally {
+                    if (isGuest) incrementGuestCount();
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <div className="app-container">
+                    <Sidebar
+                        isOpen={isSidebarOpen}
+                        onClose={() => setIsSidebarOpen(false)}
+                        user={user}
+                        onLogout={onLogout}
+                        toggleTheme={toggleTheme}
+                        isDarkMode={isDarkMode}
+                        sessions={sessions}
+                        currentSessionId={currentSessionId}
+                        onSelectSession={loadSession}
+                        onNewChat={startNewChat}
+                        onAuthRequired={onAuthRequired}
+                    />
+
+
+                    <div className="main-wrapper">
+                        <nav className="navbar">
+                            <div className="nav-left">
+                                <button className="hamburger" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+                                    <i className="fas fa-bars"></i>
+                                </button>
+                                <h2 style={{ fontSize: '1.1rem', fontWeight: 500, margin: 0 }}>
+                                    Bowen AI <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginLeft: '0.5rem' }}>1.0</span>
+                                </h2>
+                            </div>
+                            <div className="nav-right">
+                                {isGuest ? (
+                                    <button className="btn-signin-nav" onClick={onAuthRequired}>
+                                        <i className="fas fa-sign-in-alt"></i> Sign In
+                                    </button>
+                                ) : (
+                                    <div className="avatar" style={{ width: '32px', height: '32px', cursor: 'pointer' }} onClick={() => setIsSettingsOpen(true)}>
+                                        {user?.full_name?.charAt(0) || 'U'}
+                                    </div>
+                                )}
+                            </div>
+                        </nav>
+
+                        <main className="chat-viewport">
+                            {messages.length === 0 ? (
+                                <div className="hero-section">
+                                    <h1 className="hero-line-1">
+                                        {isGuest ? 'Hi there!' : `Hi there, ${user?.full_name?.split(' ')[0] || 'there'}`}
+                                    </h1>
+                                    <h1 className="hero-line-2">How can I help you today?</h1>
+                                    {isGuest && <p style={{ color: 'var(--text-muted)', marginTop: '1.5rem', opacity: 0.8 }}>Try Bowen AI Core - 5 free questions allowed.</p>}
+                                </div>
+                            ) : (
+                                <div className="messages-container">
+                                    {messages.map((msg, idx) => (
+                                        <div key={idx} className={`message-wrapper ${msg.role}`}>
+                                            <div className="message-avatar">
+                                                <i className={`fas ${msg.role === 'ai' ? 'fa-robot' : 'fa-user'}`}></i>
+                                            </div>
+                                            <div className="message-content">
+                                                {msg.content || (loading && idx === messages.length - 1 ? "..." : "")}
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <div ref={messagesEndRef} />
+                                </div>
+                            )}
+                        </main>
+
+                        <div className="input-container-fixed">
+                            <form className="search-pill" onSubmit={handleSend}>
+                                <input
+                                    placeholder="Ask Bowen AI..."
+                                    value={input}
+                                    onChange={e => setInput(e.target.value)}
+                                    disabled={loading}
+                                />
+                                <button className="send-btn" type="submit" disabled={loading || !input.trim()}>
+                                    <i className={`fas ${loading ? 'fa-circle-notch fa-spin' : 'fa-arrow-up'}`}></i>
+                                </button>
+                            </form>
+                        </div>
+
+                        {isSettingsOpen && (
+                            <SettingsModal
+                                user={user}
+                                onClose={() => setIsSettingsOpen(false)}
+                                onUpdate={setUser}
+                            />
+                        )}
+
+                        {/* Limit Reached Modal */}
+                        {guestLimitReached && (
+                            <div className="limit-overlay">
+                                <div className="limit-card">
+                                    <i className="fas fa-lock" style={{ fontSize: '3rem', color: 'var(--primary)', marginBottom: '1.5rem' }}></i>
+                                    <h2 style={{ marginBottom: '1rem' }}>Free limit reached!</h2>
+                                    <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>
+                                        You've used your 5 free questions. Join Bowen AI to continue asking questions and save your history.
+                                    </p>
+                                    <button className="btn btn-primary" onClick={onAuthRequired}>
+                                        Sign In / Join Now
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        function Main() {
+            const [token, setToken] = useState(safeStorage.getItem('bowen_token'));
+            const [view, setView] = useState('chat'); // 'chat' or 'auth'
+            const [isDarkMode, setIsDarkMode] = useState(true);
+
+            const toggleTheme = () => {
+                setIsDarkMode(!isDarkMode);
+                document.body.classList.toggle('light-mode');
+            };
+
+            const handleLogin = (newToken) => {
+                safeStorage.setItem('bowen_token', newToken);
+                setToken(newToken);
+                setView('chat');
+            };
+
+            const handleLogout = () => {
+                safeStorage.removeItem('bowen_token');
+                setToken(null);
+                setView('auth');
+            };
+
+            if (token) {
+                return <ChatApp token={token} onLogout={handleLogout} toggleTheme={toggleTheme} isDarkMode={isDarkMode} />;
+            }
+
+            if (view === 'auth') {
+                return <AuthApp onLogin={handleLogin} toggleTheme={toggleTheme} isDarkMode={isDarkMode} onBack={() => setView('chat')} />;
+            }
+
+            return (
+                <ChatApp
+                    token={null}
+                    onLogout={handleLogout}
+                    toggleTheme={toggleTheme}
+                    isDarkMode={isDarkMode}
+                    onAuthRequired={() => setView('auth')}
+                />
+            );
+        }
+
+        class ErrorBoundary extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = { hasError: false, error: null };
+            }
+            static getDerivedStateFromError(error) {
+                return { hasError: true, error: error };
+            }
+            componentDidCatch(error, errorInfo) {
+                console.error("React Error Boundary caught an error", error, errorInfo);
+            }
+            render() {
+                if (this.state.hasError) {
+                    return (
+                        <div style={{ padding: '2rem', color: '#ff5555', background: '#222', zIndex: 9999, position: 'relative' }}>
+                            <h2>React Crashed 💥</h2>
+                            <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
+                                {this.state.error && this.state.error.toString()}
+                            </pre>
+                            <p>Check the console for more details.</p>
+                        </div>
+                    );
+                }
+                return this.props.children;
+            }
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(
+            <ErrorBoundary>
+                <Main />
+            </ErrorBoundary>
+        );
+
+    </script>
 </body>
+
 </html>
