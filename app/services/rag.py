@@ -11,14 +11,14 @@ async def answer_user_question_stream(question: str, history: list = None, user_
     """
     standalone_query = await contextualize_query(question, history)
     
-    chunks = await retrieve_relevant_chunks(standalone_query, limit=5)
+    chunks = await retrieve_relevant_chunks(standalone_query, limit=15)
 
     context = ""
     sources = []
     if chunks:
         context = "KNOWLEDGE BASE DOCUMENTS:\n\n" + "\n\n".join(
             [
-                f"[Source: {chunk['filename']} | Chunk {chunk['chunk_index']}]\n{chunk['text']}"
+                f"[Source: {chunk['filename']} | Category: {chunk.get('category', 'General')} | Chunk {chunk['chunk_index']}]\n{chunk['text']}"
                 for chunk in chunks
             ]
         ) + "\n\n"

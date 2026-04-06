@@ -21,6 +21,7 @@ async def retrieve_relevant_chunks(question: str, limit: int = 5) -> list[dict]:
 
         chunks.append({
             "filename": payload.get("filename", "unknown"),
+            "category": payload.get("category", "General"),
             "chunk_index": payload.get("chunk_index", -1),
             "text": payload.get("text", ""),
             "score": getattr(point, "score", None)

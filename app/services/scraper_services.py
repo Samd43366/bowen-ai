@@ -91,14 +91,39 @@ async def scrape_url(client: httpx.AsyncClient, url: str):
         print(f"Error scraping {url}: {e}")
         return url, None
 
+URL_CATEGORIES = {
+    "fees": "Fees",
+    "tuition": "Fees",
+    "admission": "Admissions",
+    "office-of": "Administration",
+    "bursary": "Administration",
+    "library": "Campus Services",
+    "worship-centre": "Campus Services",
+    "directorate": "Directorates",
+    "coaes": "Colleges",
+    "coccs": "Colleges",
+    "comss": "Colleges",
+    "cohes": "Colleges",
+    "colaw": "Colleges",
+    "coevs": "Colleges",
+    "academics": "Academics",
+    "degree": "Academics",
+    "faith-integration": "Spiritual Life",
+    "anthem": "General"
+}
+
+def determine_category(url: str) -> str:
+    url_lower = url.lower()
+    for key, cat in URL_CATEGORIES.items():
+        if key in url_lower:
+            return cat
+    return "General Website"
+
 async def scrape_bowen_sites():
     """
     Background job to scrape URLs and push them directly to Qdrant via the document pipeline.
     """
     print("Starting scheduled Bowen University website scraping job...")
-    
-    # We will use 'Website' as category
-    category = "Website"
     
     async with httpx.AsyncClient() as client:
         # Create a pool of tasks
@@ -110,6 +135,10 @@ async def scrape_bowen_sites():
                 filename = url.replace("https://", "").replace("http://", "").strip("/")
                 if not filename:
                     filename = "bowen.edu.ng"
+                
+                # Determine the category strictly based on URL
+                category = determine_category(url)
+                
                 filename = f"Web Scrape: {filename}"
                 
                 # Because we are re-scraping, we remove the old version first
