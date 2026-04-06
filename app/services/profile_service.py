@@ -14,7 +14,15 @@ async def extract_and_update_profile(email: str, question: str, answer: str, cur
     if email == "guest":
         return
 
-    system_prompt = """
+    # Safe stringify current_profile (to handle Firestore date objects)
+    def json_serializer(obj):
+        if hasattr(obj, "isoformat"):
+            return obj.isoformat()
+        return str(obj)
+
+    safe_profile = json.dumps(current_profile, default=json_serializer)
+
+    system_prompt = f"""
 You are an expert at extracting user profile information from a conversation.
 Your goal is to identify and extract traits like:
 - Role (Student, Student Union, School Official, Parent)
@@ -25,36 +33,53 @@ Your goal is to identify and extract traits like:
 
 Given the current user profile, a user's question, and the assistant's answer, output a JSON object of NEW or UPDATED information.
 Only include information that is EXPLICITLY stated or STRONGLY implied.
-If no new information is found, output an empty JSON object {}.
+If no new information is found, output an empty JSON object {{}}.
 
 CURRENT PROFILE:
-{current_profile}
+{safe_profile}
 
 OUTPUT FORMAT:
-{
+{{
   "role": "...",
   "level": "...",
   "hostel": "...",
-  "metadata": {
+  "metadata": {{
     "department": "...",
     "interests": "...",
     ...
-  }
-}
+  }}
+}}
 """
     
     prompt = f"User Question: {question}\n\nAssistant Answer: {answer}\n\nExtracted Info (JSON):"
     
     try:
-        response = await client.chat.completions.create(
-            model=settings.GROQ_MODEL,
-            messages=[
-                {"role": "system", "content": system_prompt.format(current_profile=json.dumps(current_profile))},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.0,
-            response_format={"type": "json_object"}
-        )
+        try:
+            # Primary model attempt
+            response = await client.chat.completions.create(
+                model=settings.GROQ_MODEL,
+                messages=[
+                    {"role": "system", "content": system_prompt.strip()},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.0,
+                response_format={"type": "json_object"}
+            )
+        except Exception as groq_err:
+            error_str = str(groq_err).lower()
+            if "rate limit" in error_str or "429" in error_str:
+                print(f"Profile extraction rate limited. Switching to fallback: {settings.GROQ_FALLBACK_MODEL}")
+                response = await client.chat.completions.create(
+                    model=settings.GROQ_FALLBACK_MODEL,
+                    messages=[
+                        {"role": "system", "content": system_prompt.strip()},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.0,
+                    response_format={"type": "json_object"}
+                )
+            else:
+                raise groq_err
         
         extracted_data = json.loads(response.choices[0].message.content)
         if not extracted_data:
@@ -78,7 +103,8 @@ OUTPUT FORMAT:
         if updates:
             # Run the update in Firestore
             update_user(email, updates)
-            print(f"Updated profile for {email}: {updates}")
+            # Use safe serializer for the final print too
+            print(f"Updated profile for {email}: {json.dumps(updates, default=json_serializer)}")
             
     except Exception as e:
         print(f"Failed to extract profile info: {e}")
