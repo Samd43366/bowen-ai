@@ -74,15 +74,16 @@ async def scrape_url(client: httpx.AsyncClient, url: str):
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, 'html.parser')
             
-            for script in soup(["script", "style", "nav", "footer", "header"]):
-                script.extract()
+            # Add explicit spacing for headers and list items to prevent bunching
+            for tag in soup.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'li', 'br']):
+                tag.insert_after(NavigableString('\n'))
                 
             # Convert tables to markdown string so they don't lose structure
             for table in soup.find_all('table'):
                 md_table = convert_table_to_markdown(table)
-                table.replace_with(NavigableString(md_table))
+                table.replace_with(NavigableString('\n' + md_table + '\n'))
                 
-            text = soup.get_text(separator=' ', strip=True)
+            text = soup.get_text(separator='\n', strip=True)
             return url, text
         else:
             print(f"Failed to fetch {url}. Status: {response.status_code}")
