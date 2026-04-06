@@ -30,6 +30,7 @@ Identify the core question or need based on the history. Do NOT answer the quest
     user_prompt = f"Chat History:\n{history_str}\n\nUser Question:\n###\n{sanitized_question}\n###\n\nStandalone query:"
     
     try:
+        # Attempt with primary model
         response = await client.chat.completions.create(
             model=settings.GROQ_MODEL,
             messages=[
@@ -40,12 +41,30 @@ Identify the core question or need based on the history. Do NOT answer the quest
             max_tokens=150
         )
         rewritten = response.choices[0].message.content.strip()
-        if rewritten.startswith('"') and rewritten.endswith('"'):
-            rewritten = rewritten[1:-1]
-        return rewritten
     except Exception as e:
-        print(f"Failed to contextualize query: {e}")
-        return question
+        error_str = str(e).lower()
+        if "rate limit" in error_str or "429" in error_str:
+            print(f"Contextualization rate limited. Switching to fallback: {settings.GROQ_FALLBACK_MODEL}")
+            try:
+                response = await client.chat.completions.create(
+                    model=settings.GROQ_FALLBACK_MODEL,
+                    messages=[
+                        {"role": "system", "content": system_prompt.strip()},
+                        {"role": "user", "content": user_prompt.strip()}
+                    ],
+                    temperature=0.1,
+                    max_tokens=150
+                )
+                rewritten = response.choices[0].message.content.strip()
+            except Exception:
+                return question
+        else:
+            print(f"Failed to contextualize query: {e}")
+            return question
+
+    if rewritten.startswith('"') and rewritten.endswith('"'):
+        rewritten = rewritten[1:-1]
+    return rewritten
 
 async def generate_answer_stream_with_groq(question: str, context: str, history: list = None, user_profile: dict = None):
     client = get_groq_client()
@@ -61,6 +80,11 @@ async def generate_answer_stream_with_groq(question: str, context: str, history:
         for k in relevant_keys:
             val = user_profile.get(k)
             if val:
+                # Handle Firestore DatetimeWithNanoseconds and other non-JSON types
+                if hasattr(val, "isoformat"):
+                    val = val.isoformat()
+                elif not isinstance(val, (str, int, float, bool, list, dict, type(None))):
+                    val = str(val)
                 profile_parts.append(f"{k.replace('_', ' ').capitalize()}: {val}")
         if profile_parts:
             profile_info = "\n".join(profile_parts)

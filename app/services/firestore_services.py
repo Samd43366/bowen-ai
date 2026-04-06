@@ -103,7 +103,7 @@ def delete_category(name: str):
     db.collection("document_categories").document(name).delete()
 
 def get_document_count_by_category(category: str):
-    docs = db.collection("documents").where("category", "==", category).stream()
+    docs = db.collection("documents").where(filter=FieldFilter("category", "==", category)).stream()
     return len(list(docs))
 
 def save_document_metadata(document_data: dict):
@@ -137,7 +137,7 @@ def get_all_documents():
     return result
 
 def delete_document_by_filename(filename: str):
-    docs = db.collection("documents").where("filename", "==", filename).stream()
+    docs = db.collection("documents").where(filter=FieldFilter("filename", "==", filename)).stream()
     for doc in docs:
         doc.reference.delete()
 
@@ -169,7 +169,7 @@ def create_chat_session(user_id: str, title: str):
 def get_user_chat_sessions(user_id: str):
     # Removing order_by from the query to avoid requiring a composite index.
     # We will sort the results in memory instead.
-    docs = db.collection("chat_sessions").where("user_id", "==", user_id).stream()
+    docs = db.collection("chat_sessions").where(filter=FieldFilter("user_id", "==", user_id)).stream()
     result = []
     for doc in docs:
         data = doc.to_dict()

@@ -931,9 +931,22 @@
                                             <div
                                                 className="message-content"
                                                 dangerouslySetInnerHTML={{
-                                                    __html: msg.role === 'ai'
-                                                        ? marked.parse(msg.content || (loading && idx === messages.length - 1 ? "..." : ""))
-                                                        : msg.content
+                                                    __html: (() => {
+                                                        const content = msg.content || (loading && idx === messages.length - 1 ? "..." : "");
+                                                        if (msg.role === 'ai') {
+                                                            try {
+                                                                if (window.marked && typeof window.marked.parse === 'function') {
+                                                                    return window.marked.parse(content);
+                                                                }
+                                                                // Use simple text if marked is not ready
+                                                                return content.replace(/\n/g, '<br/>');
+                                                            } catch (e) {
+                                                                console.warn("Markdown parsing failed:", e);
+                                                                return content.replace(/\n/g, '<br/>');
+                                                            }
+                                                        }
+                                                        return content;
+                                                    })()
                                                 }}
                                             />
                                         </div>
