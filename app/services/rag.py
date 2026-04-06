@@ -11,7 +11,7 @@ async def answer_user_question_stream(question: str, history: list = None, user_
     """
     standalone_query = await contextualize_query(question, history)
     
-    chunks = await retrieve_relevant_chunks(standalone_query, limit=15)
+    chunks = await retrieve_relevant_chunks(standalone_query, limit=8)
 
     context = ""
     sources = []
