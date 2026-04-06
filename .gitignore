@@ -7,3 +7,5 @@ app/credentials/*.json
 scripts/
 models/
 *.sqlite3
+*.txt
+!requirement.txt

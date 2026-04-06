@@ -37,4 +37,8 @@ class ResetPasswordRequest(BaseModel):
     new_password: str = Field(..., min_length=6)
 
 class UserUpdate(BaseModel):
-    full_name: Optional[str] = Field(None, min_length=2)
+    full_name: Optional[str] = Field(None, min_length=2)
+    role: Optional[str] = None
+    level: Optional[str] = None
+    hostel: Optional[str] = None
+    metadata: Optional[dict] = None

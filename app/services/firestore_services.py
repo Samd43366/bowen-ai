@@ -234,3 +234,37 @@ def get_recent_audit_logs(limit: int = 50):
         # Sort in memory
         result.sort(key=lambda x: x.get("timestamp", datetime.min), reverse=True)
         return result
+
+# --- ACTIONABLE LINKS ---
+
+def save_actionable_link(link_data: dict):
+    doc_ref = db.collection("actionable_links").document()
+    link_data["id"] = doc_ref.id
+    link_data["created_at"] = datetime.now(timezone.utc).isoformat()
+    link_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    doc_ref.set(link_data)
+    return link_data
+
+def get_all_actionable_links():
+    docs = db.collection("actionable_links").stream()
+    result = []
+    for doc in docs:
+        data = doc.to_dict()
+        data["id"] = doc.id
+        result.append(data)
+    return result
+
+def get_actionable_link_by_id(link_id: str):
+    doc = db.collection("actionable_links").document(link_id).get()
+    if doc.exists:
+        data = doc.to_dict()
+        data["id"] = doc.id
+        return data
+    return None
+
+def update_actionable_link(link_id: str, updates: dict):
+    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+    db.collection("actionable_links").document(link_id).update(updates)
+
+def delete_actionable_link(link_id: str):
+    db.collection("actionable_links").document(link_id).delete()

@@ -13,10 +13,26 @@ from app.core.rate_limit import limiter
 
 from app.middleware.security_headers import SecurityHeadersMiddleware
 
+from contextlib import asynccontextmanager
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from app.services.scraper_services import run_scraper_sync
+
+scheduler = AsyncIOScheduler()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Start the scheduler when app starts
+    scheduler.add_job(run_scraper_sync, 'cron', hour=0, minute=30) # Run at 12:30 AM daily
+    scheduler.start()
+    yield
+    # Shutdown when app stops
+    scheduler.shutdown()
+
 app = FastAPI(
     title="Bowen AI API",
     description="RAG_based AI system for bowen University users",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # Wire up the rate limiter

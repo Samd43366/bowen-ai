@@ -254,3 +254,29 @@ async def delete_unanswered_question(question_id: str, current_admin: dict = Dep
     from app.core.database import db
     db.collection("unanswered_questions").document(question_id).delete()
     return {"message": "Knowledge gap cleared"}
+
+# --- ACTIONABLE LINKS ROUTES ---
+from app.schemas.link import CreateLinkRequest
+from app.services.firestore_services import (
+    save_actionable_link, 
+    get_all_actionable_links, 
+    delete_actionable_link
+)
+
+@router.post("/links")
+async def create_link(request: CreateLinkRequest, current_admin: dict = Depends(admin_required)):
+    link_data = request.model_dump()
+    save_actionable_link(link_data)
+    log_admin_action(current_admin["email"], "CREATE_LINK", request.title)
+    return {"message": "Link created successfully"}
+
+@router.get("/links")
+async def get_links(current_admin: dict = Depends(admin_required)):
+    links = get_all_actionable_links()
+    return {"links": links}
+
+@router.delete("/links/{link_id}")
+async def remove_link(link_id: str, current_admin: dict = Depends(admin_required)):
+    delete_actionable_link(link_id)
+    log_admin_action(current_admin["email"], "DELETE_LINK", link_id)
+    return {"message": "Link deleted successfully"}
