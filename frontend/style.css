@@ -612,6 +612,57 @@ body.light-mode .theme-toggle:hover {
     padding-top: 4px;
 }
 
+/* Markdown Styling within message-content */
+.message-content a {
+    color: #60a5fa; /* Bright blue for links */
+    text-decoration: underline;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.message-content a:hover {
+    color: #93c5fd;
+}
+
+.message-content p {
+    margin-bottom: 0.75rem;
+}
+
+.message-content h1, .message-content h2, .message-content h3 {
+    margin: 1rem 0 0.5rem 0;
+    line-height: 1.3;
+}
+
+.message-content ul, .message-content ol {
+    margin-left: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.message-content li {
+    margin-bottom: 0.25rem;
+}
+
+.message-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+}
+
+.message-content th, .message-content td {
+    border: 1px solid var(--glass-border);
+    padding: 0.5rem;
+    text-align: left;
+}
+
+.message-content th {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+body.light-mode .message-content a {
+    color: #2563eb;
+}
+
 /* Floating Input Bar (Pill style) */
 .input-container-fixed {
     width: 100%;

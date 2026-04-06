@@ -23,16 +23,29 @@ async def answer_user_question_stream(question: str, history: list = None, user_
             ]
         ) + "\n\n"
 
-    # Fetch actionable links for possible walkthroughs
+    # Fetch relevant actionable links for possible walkthroughs
     try:
-        links = get_all_actionable_links()
-        if links:
-            context += "AVAILABLE ACTIONABLE LINKS & WALKTHROUGHS:\n"
-            for link in links:
-                context += f"- Title: {link.get('title')}\n  URL: {link.get('url')}\n  Description: {link.get('description')}\n"
-                if link.get("walkthrough"):
-                    context += f"  Walkthrough Steps: {json.dumps(link.get('walkthrough'))}\n"
-            context += "\n"
+        all_links = get_all_actionable_links()
+        query_lower = standalone_query.lower()
+        if all_links:
+            # Simple keyword filtering for relevance
+            relevant_links = []
+            for link in all_links:
+                title = link.get('title', '').lower()
+                desc = link.get('description', '').lower()
+                # If query contains link keywords or vice versa
+                if any(word in query_lower for word in title.split()) or \
+                   any(word in query_lower for word in desc.split()) or \
+                   (len(all_links) < 3): # Always show a few if list is very small
+                    relevant_links.append(link)
+            
+            if relevant_links:
+                context += "RELEVANT ACTIONABLE LINKS & WALKTHROUGHS:\n"
+                for link in relevant_links:
+                    context += f"- Title: {link.get('title')}\n  URL: {link.get('url')}\n  Description: {link.get('description')}\n"
+                    if link.get("walkthrough"):
+                        context += f"  Walkthrough Steps: {json.dumps(link.get('walkthrough'))}\n"
+                context += "\n"
     except Exception as e:
         print(f"Failed to fetch actionable links: {e}")
 

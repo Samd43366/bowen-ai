@@ -25,6 +25,9 @@
     <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+    <!-- Markdown Parser -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
     <link rel="stylesheet" href="style.css">
 
 </head>
@@ -925,9 +928,14 @@
                                             <div className="message-avatar">
                                                 <i className={`fas ${msg.role === 'ai' ? 'fa-robot' : 'fa-user'}`}></i>
                                             </div>
-                                            <div className="message-content">
-                                                {msg.content || (loading && idx === messages.length - 1 ? "..." : "")}
-                                            </div>
+                                            <div
+                                                className="message-content"
+                                                dangerouslySetInnerHTML={{
+                                                    __html: msg.role === 'ai'
+                                                        ? marked.parse(msg.content || (loading && idx === messages.length - 1 ? "..." : ""))
+                                                        : msg.content
+                                                }}
+                                            />
                                         </div>
                                     ))}
                                     <div ref={messagesEndRef} />
