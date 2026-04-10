@@ -232,6 +232,7 @@
             const [formData, setFormData] = useState({ name: '', email: '', password: '' });
             const [loading, setLoading] = useState(false);
             const [alertMsg, setAlertMsg] = useState({ text: '', type: '' });
+            const [agreeTerms, setAgreeTerms] = useState(false);
 
             const handleInput = (e) => {
                 setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -239,6 +240,12 @@
 
             const handleRegisterSubmit = async (e) => {
                 e.preventDefault();
+                
+                if (!agreeTerms) {
+                    setAlertMsg({ text: 'You must agree to the Terms & Privacy Policy to register.', type: 'error' });
+                    return;
+                }
+
                 setLoading(true);
                 setAlertMsg({ text: '', type: '' });
 
@@ -381,6 +388,11 @@
             };
 
             const handleSocialLogin = async (providerType) => {
+                if (view === 'register' && !agreeTerms) {
+                    setAlertMsg({ text: 'You must agree to the Terms & Privacy Policy before signing up.', type: 'error' });
+                    return;
+                }
+                
                 setLoading(true);
                 setAlertMsg({ text: '', type: '' });
 
@@ -496,6 +508,11 @@
 
                                 <PasswordStrengthMeter password={formData.password} />
 
+                                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginTop: '1rem', marginBottom: '1.5rem', fontSize: '0.85rem', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                                    <input type="checkbox" checked={agreeTerms} onChange={(e) => setAgreeTerms(e.target.checked)} style={{ marginTop: '0.2rem', cursor: 'pointer' }} />
+                                    <span>I understand and agree to the <a href="terms.html" target="_blank" style={{color: 'var(--primary)', textDecoration: 'none', fontWeight: 500}}>Terms & Privacy Policy</a>, including the automated background extraction of my academic profile.</span>
+                                </label>
+
                                 <button className="btn btn-primary" type="submit" disabled={loading}>
                                     {loading ? <i className="fas fa-circle-notch fa-spin"></i> : <i className="fas fa-user-plus"></i>}
                                     {loading ? ' Creating...' : ' Create Account'}
@@ -532,6 +549,14 @@
                         {(view === 'login' || view === 'register') && (
                             <React.Fragment>
                                 <div className="divider">Or continue with</div>
+                                
+                                {view === 'register' && (
+                                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                                        <input type="checkbox" checked={agreeTerms} onChange={(e) => setAgreeTerms(e.target.checked)} style={{ marginTop: '0.2rem', cursor: 'pointer' }} />
+                                        <span>I agree to the <a href="terms.html" target="_blank" style={{color: 'var(--primary)', textDecoration: 'none'}}>Terms & Privacy Policy</a>.</span>
+                                    </label>
+                                )}
+
                                 <div style={{ display: 'flex', gap: '1rem' }}>
                                     <button className="btn btn-social" style={{ flex: 1 }} type="button" onClick={() => handleSocialLogin('google')} disabled={loading}>
                                         <i className="fab fa-google" style={{ color: '#ea4335' }}></i> Google

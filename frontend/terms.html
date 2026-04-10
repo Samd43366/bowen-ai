@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Bowen AI - Terms & Privacy Policy</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    
+    <style>
+        body { padding: 2rem; overflow-y: auto; display: block; }
+        .legal-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 3rem;
+            backdrop-filter: blur(10px);
+        }
+        .legal-container h1 {
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            font-size: 2.5rem;
+        }
+        .legal-container h2 {
+            color: var(--text-color);
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 0.5rem;
+        }
+        .legal-container p, .legal-container li {
+            color: var(--text-muted);
+            line-height: 1.8;
+            font-size: 1.05rem;
+            margin-bottom: 1rem;
+        }
+        .legal-container ul {
+            margin-left: 2rem;
+            margin-bottom: 1.5rem;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 2rem;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        .back-link:hover { color: white; }
+        
+        /* Light mode overrides */
+        @media (prefers-color-scheme: light) {
+            .legal-container {
+                background: white;
+                border: 1px solid var(--border-light);
+            }
+        }
+    </style>
+</head>
+<body class="dark-mode"> <!-- Force dark mode style foundation -->
+    <a href="javascript:history.back()" class="back-link"><i class="fas fa-arrow-left"></i> Return to Sign In</a>
+    
+    <div class="legal-container">
+        <h1>Terms & Privacy Policy</h1>
+        <p>Last updated: April 2026</p>
+        
+        <h2>1. Acceptance of Terms</h2>
+        <p>By creating an account and using Bowen AI, you agree to these Terms and Conditions. Bowen AI serves as an intelligent academic assistant to help you navigate campus life, academic procedures, and general inquiries at Bowen University.</p>
+
+        <h2>2. Data Collection and Background Profiling</h2>
+        <p>To provide a highly personalized, "intelligent" experience, Bowen AI utilizes automated systems to analyze your usage. By using this service, you explicitly consent to the following:</p>
+        <ul>
+            <li><strong>Automated Profile Extraction:</strong> Our background AI engine continuously analyzes your chat conversations to deduce your personal academic metadata, such as your <strong>Level, Department, Hostel, and Role</strong>. This data is extracted and stored in your profile automatically to ensure future answers are perfectly tailored to you.</li>
+            <li><strong>Chat History Retention:</strong> Your entire conversation history with the AI is stored permanently in our database to allow seamless continuation across sessions and devices.</li>
+            <li><strong>Verification Analytics:</strong> Non-sensitive usage data may be compiled to help university administrators identify "Knowledge Gaps" in our repository.</li>
+        </ul>
+
+        <h2>3. Third-Party AI Processing</h2>
+        <p>Your inquiries are processed by advanced Large Language Models to generate intelligent responses. This means your text prompts are securely transmitted to third-party providers (such as Groq and Hugging Face) purely for the purpose of inference generation. These providers are bound by strict SLAs regarding data transience.</p>
+
+        <h2>4. Educational & Advisory Purpose</h2>
+        <p>While Bowen AI is designed carefully referencing official university documents, it functions as an advisory tool. For critical matters (such as exact tuition deadlines or registration portals), you should always verify the AI's provided Actionable Links directly via the official Bowen University portals.</p>
+
+        <h2>5. Account Security</h2>
+        <p>You are responsible for maintaining the confidentiality of your account password and OTPs. Because your profile dynamically remembers your academic status, unauthorized access to your account exposes your personalized metadata.</p>
+        
+        <div style="margin-top: 3rem; text-align: center; font-size: 0.9rem; color: var(--text-muted);">
+            <p>If you do not agree to these terms, you may not use the Bowen AI platform.</p>
+        </div>
+    </div>
+</body>
+</html>
