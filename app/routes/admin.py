@@ -18,7 +18,7 @@ from app.services.firestore_services import (
     delete_category,
     get_document_count_by_category
 )
-from app.services.qdrant_services import delete_document_chunks
+from app.services.qdrant_services import delete_document_chunks, get_document_preview_chunks
 import re
 
 def secure_filename(filename: str) -> str:
@@ -98,8 +98,14 @@ async def get_documents(current_admin: dict = Depends(document_admin_required)):
 async def get_document(document_id: str, current_admin: dict = Depends(document_admin_required)):
     doc = get_document_by_id(document_id)
     if not doc:
-        raise HTTPException(status_code=404, detail="Document not found")
+        raise HTTPException(status_code=404, detail="Document not found.")
     return doc
+
+
+@router.get("/documents/{filename}/preview")
+async def preview_document_chunks(filename: str, current_admin: dict = Depends(document_admin_required)):
+    chunks = get_document_preview_chunks(filename, limit=5)
+    return {"chunks": chunks}
 
 @router.get("/categories")
 async def fetch_categories(current_admin: dict = Depends(admin_required)):

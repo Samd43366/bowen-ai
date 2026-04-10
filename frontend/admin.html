@@ -511,6 +511,9 @@ function DocumentsTab({ token, docToken }) {
     const [newCategoryName, setNewCategoryName] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('All');
 
+    const [previewChunks, setPreviewChunks] = useState(null);
+    const [previewDocName, setPreviewDocName] = useState('');
+
     useEffect(() => {
         if (!token) return;
         fetch('/admin/categories', { headers: { 'Authorization': `Bearer ${token}` }})
@@ -558,6 +561,16 @@ function DocumentsTab({ token, docToken }) {
             });
             setRefresh(r=>r+1);
         }
+    };
+
+    const handlePreview = async (filename) => {
+        try {
+            const res = await fetch(`/admin/documents/${filename}/preview`, { headers: { 'Authorization': `Bearer ${docToken}` }});
+            if (!res.ok) throw new Error("Failed to fetch");
+            const data = await res.json();
+            setPreviewChunks(data.chunks || []);
+            setPreviewDocName(filename);
+        } catch(e) { alert("Failed to fetch preview chunks"); }
     };
 
     const handleAddCategory = async () => {
@@ -658,6 +671,9 @@ function DocumentsTab({ token, docToken }) {
                                 </td>
                                 <td style={{fontFamily: 'monospace'}}>{d.chunks_indexed || 0} chunks</td>
                                 <td>
+                                    {d.status !== 'processing' && (
+                                        <button className="action-btn" style={{background: 'rgba(99, 102, 241, 0.2)', color: '#818cf8', marginRight: '0.5rem'}} onClick={() => handlePreview(d.filename)} title="Preview Vector Data"><i className="fas fa-eye"></i></button>
+                                    )}
                                     <button className="action-btn btn-danger" onClick={() => handleDelete(d.filename)} title="Remove Document from Knowledge Base"><i className="fas fa-trash"></i></button>
                                 </td>
                             </tr>
@@ -665,6 +681,34 @@ function DocumentsTab({ token, docToken }) {
                     </tbody>
                 </table>
             </div>
+
+            {previewChunks && (
+                <div className="modal-overlay" onClick={() => setPreviewChunks(null)}>
+                    <div className="settings-modal" style={{ maxWidth: '800px', maxHeight: '80vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+                        <div className="settings-header">
+                            <h3 style={{ margin: 0, color: 'var(--primary)' }}>Preview: {previewDocName}</h3>
+                            <button className="hamburger" onClick={() => setPreviewChunks(null)}><i className="fas fa-xmark"></i></button>
+                        </div>
+                        
+                        <div style={{ marginTop: '1rem' }}>
+                            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>Sample of AI knowledge extraction (first 5 chunks shown).</p>
+                            
+                            {previewChunks.length === 0 ? (
+                                <p style={{ opacity: 0.5 }}>No text chunks found for this document.</p>
+                            ) : (
+                                previewChunks.map((chunk, idx) => (
+                                    <div key={idx} style={{ background: 'rgba(0,0,0,0.3)', padding: '1rem', borderRadius: '8px', marginBottom: '1rem', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                        <div style={{ fontSize: '0.8rem', color: '#818cf8', marginBottom: '0.5rem', fontWeight: 600 }}>CHUNK {chunk.chunk_index}</div>
+                                        <div style={{ fontSize: '0.95rem', lineHeight: '1.6', whiteSpace: 'pre-wrap', color: 'var(--text-color)' }}>
+                                            {chunk.text}
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

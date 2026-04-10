@@ -145,3 +145,32 @@ def delete_document_chunks(filename: str):
             ]
         )
     )
+
+
+def get_document_preview_chunks(filename: str, limit: int = 5) -> list:
+    """
+    Retrieve a few sample chunks for a specific document filename.
+    """
+    client = get_qdrant_client()
+    try:
+        results, next_page_offset = client.scroll(
+            collection_name=settings.QDRANT_COLLECTION_NAME,
+            scroll_filter=Filter(
+                must=[
+                    FieldCondition(
+                        key="filename",
+                        match=MatchValue(value=filename)
+                    )
+                ]
+            ),
+            limit=limit,
+            with_payload=True,
+            with_vectors=False
+        )
+        # Sort by chunk_index
+        chunks = [{"chunk_index": r.payload.get("chunk_index"), "text": r.payload.get("text")} for r in results]
+        chunks.sort(key=lambda x: x["chunk_index"] if x["chunk_index"] is not None else 0)
+        return chunks
+    except Exception as e:
+        print(f"Error fetching preview chunks: {e}")
+        return []

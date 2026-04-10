@@ -14,14 +14,20 @@ async def answer_user_question_stream(question: str, history: list = None, user_
     chunks = await retrieve_relevant_chunks(standalone_query, limit=8)
 
     context = ""
-    sources = []
     if chunks:
+        unique_sources = set()
+        for chunk in chunks:
+            unique_sources.add(chunk['filename'])
+            
         context = "KNOWLEDGE BASE DOCUMENTS:\n\n" + "\n\n".join(
             [
                 f"[Source: {chunk['filename']} | Category: {chunk.get('category', 'General')} | Chunk {chunk['chunk_index']}]\n{chunk['text']}"
                 for chunk in chunks
             ]
         ) + "\n\n"
+        
+        # Emit the sources event first so UI can display them
+        yield json.dumps({"type": "sources", "data": list(unique_sources)}) + "\n"
 
     # Fetch relevant actionable links for possible walkthroughs
     try:
