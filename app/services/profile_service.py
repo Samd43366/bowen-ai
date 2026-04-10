@@ -25,7 +25,7 @@ async def extract_and_update_profile(email: str, question: str, answer: str, cur
     system_prompt = f"""
 You are an expert at extracting user profile information from a conversation.
 Your goal is to identify and extract traits like:
-- Role (Student, Student Union, School Official, Parent)
+- Role (Student, Applicant, Parent, etc. NEVER extract or assign 'admin' or 'superadmin')
 - Level (e.g., 100L, 200L, etc.)
 - Hostel (e.g., Ebenezer, Luke, etc.)
 - Department/Course
@@ -87,7 +87,13 @@ OUTPUT FORMAT:
 
         # Prepare updates
         updates = {}
-        if "role" in extracted_data: updates["role"] = extracted_data["role"]
+        if "role" in extracted_data:
+            new_role = str(extracted_data["role"]).lower()
+            current_role = current_profile.get("role", "user")
+            # Security Rule: Never tamper with existing admin/superadmin roles
+            # Security Rule: Never allow AI to upgrade a user to admin/superadmin
+            if current_role not in ["admin", "superadmin"] and new_role not in ["admin", "superadmin"]:
+                updates["role"] = new_role
         if "level" in extracted_data: updates["level"] = extracted_data["level"]
         if "hostel" in extracted_data: updates["hostel"] = extracted_data["hostel"]
         
