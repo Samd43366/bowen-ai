@@ -28,6 +28,23 @@
 
     <!-- Markdown Parser -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+        if (window.marked && typeof window.marked.use === 'function') {
+            window.marked.use({
+                gfm: true,
+                breaks: true,
+                renderer: {
+                    link(href, title, text) {
+                        if (typeof href === 'object' && href.href) {
+                            text = href.text; title = href.title; href = href.href;
+                        }
+                        const titleAttr = title ? ` title="${title}"` : '';
+                        return `<a target="_blank" rel="noopener noreferrer" style="color: var(--primary); text-decoration: underline;" href="${href}"${titleAttr}>${text}</a>`;
+                    }
+                }
+            });
+        }
+    </script>
 
     <link rel="stylesheet" href="style.css">
 
