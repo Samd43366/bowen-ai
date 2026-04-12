@@ -16,7 +16,10 @@ from app.services.firestore_services import (
     add_category,
     get_all_categories,
     delete_category,
-    get_document_count_by_category
+    get_document_count_by_category,
+    count_users,
+    count_documents,
+    count_chat_sessions
 )
 from app.services.qdrant_services import delete_document_chunks, get_document_preview_chunks
 import re
@@ -181,16 +184,19 @@ async def delete_user_route(email: str, current_admin: dict = Depends(superadmin
 
 @router.get("/stats")
 async def get_admin_stats(current_admin: dict = Depends(superadmin_required)):
-    from app.core.database import db
+    # Optimized counts
+    users_count = count_users()
+    docs_count = count_documents()
+    sessions_count = count_chat_sessions()
+    
+    # We still fetch users for roles counts (could be optimized further with where clauses if needed)
     users = get_all_users()
-    docs = get_all_documents()
-    sessions_count = len(list(db.collection("chat_sessions").stream()))
     
     return {
-        "total_users": len(users),
+        "total_users": users_count,
         "total_pending_admins": len([u for u in users if u.get("role") == "admin" and not u.get("is_approved")]),
         "total_system_admins": len([u for u in users if u.get("role") in ["admin", "superadmin"]]),
-        "total_documents": len(docs),
+        "total_documents": docs_count,
         "total_chat_sessions": sessions_count
     }
 

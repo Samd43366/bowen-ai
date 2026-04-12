@@ -26,8 +26,9 @@
     <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- Markdown Parser -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Markdown and Security Libraries -->
+    <script src="marked.min.js"></script>
+    <script src="purify.min.js"></script>
     <script>
         if (window.marked && typeof window.marked.use === 'function') {
             window.marked.use({
@@ -994,11 +995,32 @@
                                                         const content = msg.content || (loading && idx === messages.length - 1 ? "..." : "");
                                                         if (msg.role === 'ai') {
                                                             try {
-                                                                if (window.marked && typeof window.marked.parse === 'function') {
-                                                                    return window.marked.parse(content);
+                                                                const m = window.marked;
+                                                                if (m) {
+                                                                    let rawHtml = "";
+                                                                    if (typeof m.parse === 'function') {
+                                                                        rawHtml = m.parse(content);
+                                                                    } else if (typeof m === 'function') {
+                                                                        rawHtml = m(content);
+                                                                    }
+
+                                                                    // Add security attributes to links
+                                                                    rawHtml = rawHtml.replace(/<a /g, '<a rel="noopener noreferrer" ');
+                                                                    
+                                                                    // SANITIZE EVERYTHING
+                                                                    if (window.DOMPurify) {
+                                                                        return window.DOMPurify.sanitize(rawHtml);
+                                                                    }
+                                                                    return rawHtml;
                                                                 }
-                                                                // Use simple text if marked is not ready
-                                                                return content.replace(/\n/g, '<br/>');
+                                                                // Basic URL to link conversion if marked is missing
+                                                                let text = content.replace(/\n/g, '<br/>');
+                                                                text = text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color:var(--primary)">$1</a>');
+                                                                
+                                                                if (window.DOMPurify) {
+                                                                    return window.DOMPurify.sanitize(text);
+                                                                }
+                                                                return text;
                                                             } catch (e) {
                                                                 console.warn("Markdown parsing failed:", e);
                                                                 return content.replace(/\n/g, '<br/>');

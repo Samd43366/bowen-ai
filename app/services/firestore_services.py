@@ -79,6 +79,7 @@ def approve_admin(email: str):
     })
 
 def get_all_users(scrub: bool = True):
+    """Retrieve all users. Used by superadmin dashboard."""
     docs = db.collection(USERS_COLLECTION).stream()
     result = []
     for doc in docs:
@@ -89,6 +90,12 @@ def get_all_users(scrub: bool = True):
         result.append(data)
     return result
 
+def count_users():
+    """Efficiently count users using Firestore count()."""
+    query = db.collection(USERS_COLLECTION)
+    # This works in google-cloud-firestore 2.11.x+
+    return query.count().get()[0][0].value
+
 # --- DOCUMENT METADATA & CATEGORIES ---
 
 def add_category(name: str):
@@ -98,6 +105,16 @@ def add_category(name: str):
 def get_all_categories():
     docs = db.collection("document_categories").stream()
     return [doc.id for doc in docs]
+
+def count_documents():
+    """Count all document metadata entries."""
+    query = db.collection("document_metadata")
+    return query.count().get()[0][0].value
+
+def count_chat_sessions():
+    """Count total chat sessions."""
+    query = db.collection("chat_sessions")
+    return query.count().get()[0][0].value
 
 def delete_category(name: str):
     db.collection("document_categories").document(name).delete()
