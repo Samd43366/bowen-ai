@@ -6,7 +6,10 @@ from email.message import EmailMessage
 logger = logging.getLogger(__name__)
 
 async def send_email(to_email: str, subject: str, body: str):
-    if not settings.SMTP_USERNAME or not settings.SMTP_PASSWORD:
+    if settings.SMTP_SERVER == "localhost":
+        logger.info(f"Using local SMTP mode. Check your local SMTP server for email to {to_email}.")
+        print(f"\n--- LOCAL SMTP EMAIL ---\nTo: {to_email}\nSubject: {subject}\n{body}\n-----------------------\n")
+    elif not settings.SMTP_USERNAME or not settings.SMTP_PASSWORD:
         logger.warning(f"SMTP credentials not set. Simulating email to {to_email}.")
         print(f"\n--- EMAIL SIMULATOR ---\nTo: {to_email}\nSubject: {subject}\n{body}\n-----------------------\n")
         return
@@ -18,15 +21,22 @@ async def send_email(to_email: str, subject: str, body: str):
     message.set_content(body)
 
     try:
-        await aiosmtplib.send(
-            message,
-            hostname=settings.SMTP_SERVER,
-            port=settings.SMTP_PORT,
-            username=settings.SMTP_USERNAME,
-            password=settings.SMTP_PASSWORD,
-            use_tls=(settings.SMTP_PORT == 465),
-            start_tls=(settings.SMTP_PORT == 587)
-        )
+        if settings.SMTP_SERVER == "localhost":
+            await aiosmtplib.send(
+                message,
+                hostname=settings.SMTP_SERVER,
+                port=settings.SMTP_PORT
+            )
+        else:
+            await aiosmtplib.send(
+                message,
+                hostname=settings.SMTP_SERVER,
+                port=settings.SMTP_PORT,
+                username=settings.SMTP_USERNAME,
+                password=settings.SMTP_PASSWORD,
+                use_tls=(settings.SMTP_PORT == 465),
+                start_tls=(settings.SMTP_PORT == 587)
+            )
         logger.info(f"SMTP Email sent successfully to {to_email}")
     except Exception as e:
         logger.error(f"Failed to send email via SMTP: {str(e)}")
