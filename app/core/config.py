@@ -21,7 +21,13 @@ class Settings(BaseSettings):
 
     EMAIL_FROM_NAME: str = "Bowen AI"
     EMAIL_FROM: str
-    BREVO_API_KEY: str
+
+    SMTP_SERVER: str = "smtp-relay.brevo.com"
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: str | None = None
+    SMTP_PASSWORD: str | None = None
+    
+    BREVO_API_KEY: str | None = None
     
     ADMIN_REGISTRATION_SECRET: str
 

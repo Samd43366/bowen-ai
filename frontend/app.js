@@ -484,10 +484,59 @@ function ChatApp({ token, onLogout, toggleTheme, isDarkMode }) {
                 },
                 body: JSON.stringify({ question: newMsg.content })
             });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.detail || 'Failed to get answer');
 
-            setMessages(prev => [...prev, { role: 'ai', content: data.answer, sources: data.sources }]);
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.detail || 'Failed to get answer');
+            }
+
+            // Append empty message first
+            setMessages(prev => [...prev, { role: 'ai', content: '', sources: [] }]);
+            
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let fullAnswer = "";
+            let sourcesObj = [];
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                
+                const chunk = decoder.decode(value, { stream: true });
+                const lines = chunk.split('\n');
+                
+                for (let line of lines) {
+                    if (!line.trim()) continue;
+                    try {
+                        const data = JSON.parse(line);
+                        if (data.type === 'token') {
+                            fullAnswer += data.content || '';
+                            setMessages(prev => {
+                                const newMessages = [...prev];
+                                newMessages[newMessages.length - 1] = { 
+                                    ...newMessages[newMessages.length - 1], 
+                                    content: fullAnswer,
+                                    sources: sourcesObj
+                                };
+                                return newMessages;
+                            });
+                        } else if (data.type === 'sources') {
+                             sourcesObj = data.data.map(src => ({ filename: src }));
+                             setMessages(prev => {
+                                const newMessages = [...prev];
+                                newMessages[newMessages.length - 1] = { 
+                                    ...newMessages[newMessages.length - 1], 
+                                    content: fullAnswer,
+                                    sources: sourcesObj 
+                                };
+                                return newMessages;
+                            });
+                        }
+                    } catch (e) {
+                         // Some lines might be incomplete chunks, safely ignore
+                    }
+                }
+            }
         } catch (err) {
             setMessages(prev => [...prev, { role: 'ai', content: `Error: ${err.message}` }]);
         } finally {

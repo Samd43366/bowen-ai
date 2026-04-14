@@ -7,11 +7,12 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Frame-Options"] = "SAMEORIGIN"
         csp_policy = (
             "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.gstatic.com; "
             "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
             "img-src 'self' data: https:; "
             "font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; "
-            "connect-src 'self' http://localhost:8000 http://127.0.0.1:8000 http://localhost:8001 https://huggingface.co; "
+            "connect-src 'self' http://localhost:8000 http://127.0.0.1:8000 http://localhost:8001 https://huggingface.co https://*.googleapis.com https://*.firebaseapp.com; "
+            "frame-src 'self' https://*.firebaseapp.com; "
             "frame-ancestors 'none'; "
             "object-src 'none';"
         )
