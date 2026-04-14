@@ -253,7 +253,7 @@ async def social_login(request: SocialLoginRequest):
         try:
             await send_otp_email(email, otp_code)
         except Exception as e:
-            print(f"SMTP Email Error: {e}. Falling back to default OTP 123456 for testing.")
+            print(f"Brevo Email Error: {e}. Falling back to default OTP 123456 for testing.")
             otp_code = "123456"
             user_data["otp_code"] = otp_code
             update_user(email, {"otp_code": otp_code})
@@ -272,7 +272,7 @@ async def social_login(request: SocialLoginRequest):
         try:
             await send_otp_email(email, otp_code)
         except Exception as e:
-            print(f"SMTP Email Error: {e}. Falling back to default OTP 123456 for testing.")
+            print(f"Brevo Email Error: {e}. Falling back to default OTP 123456 for testing.")
             otp_code = "123456"
             save_user_otp(email, otp_code, otp_expires_at)
             
