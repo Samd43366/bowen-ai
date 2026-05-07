@@ -291,4 +291,42 @@ async def get_links(current_admin: dict = Depends(admin_required)):
 async def remove_link(link_id: str, current_admin: dict = Depends(admin_required)):
     delete_actionable_link(link_id)
     log_admin_action(current_admin["email"], "DELETE_LINK", link_id)
-    return {"message": "Link deleted successfully"}
+    return {"message": "Link deleted successfully"}
+
+# --- SCRAPER ROUTES ---
+from app.services.firestore_services import save_scrape_url, get_all_scrape_urls, delete_scrape_url, get_system_metadata
+from app.services.scraper_services import trigger_single_scrape
+
+class ScrapeUrlRequest(BaseModel):
+    url: str
+    category: str = "Uncategorized"
+
+@router.get("/scrape-urls")
+async def get_scrape_urls_route(current_admin: dict = Depends(admin_required)):
+    urls = get_all_scrape_urls()
+    last_scrape = get_system_metadata("last_full_scrape_time")
+    return {"urls": urls, "last_full_scrape_time": last_scrape}
+
+@router.post("/scrape-urls")
+async def add_scrape_url_route(request: ScrapeUrlRequest, current_admin: dict = Depends(admin_required)):
+    url_data = {"url": request.url, "category": request.category}
+    saved = save_scrape_url(url_data)
+    log_admin_action(current_admin["email"], "ADD_SCRAPE_URL", request.url)
+    return {"message": "URL added successfully", "data": saved}
+
+@router.delete("/scrape-urls/{url_id}")
+async def delete_scrape_url_route(url_id: str, current_admin: dict = Depends(admin_required)):
+    delete_scrape_url(url_id)
+    log_admin_action(current_admin["email"], "DELETE_SCRAPE_URL", url_id)
+    return {"message": "URL deleted successfully"}
+
+@router.post("/scrape-urls/{url_id}/scrape-now")
+async def trigger_scrape_now_route(url_id: str, current_admin: dict = Depends(admin_required)):
+    urls = get_all_scrape_urls()
+    url_info = next((u for u in urls if u["id"] == url_id), None)
+    if not url_info:
+        raise HTTPException(status_code=404, detail="URL not found")
+    
+    trigger_single_scrape(url_info["url"], url_info.get("category", "Uncategorized"))
+    log_admin_action(current_admin["email"], "TRIGGER_SCRAPE", url_info["url"])
+    return {"message": "Scraping initiated in background"}

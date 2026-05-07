@@ -787,6 +787,119 @@ function KnowledgeGapsTab({ token }) {
 }
 
 // ---------------------------
+// WEB SCRAPER TAB
+// ---------------------------
+function WebScraperTab({ token }) {
+    const [urls, setUrls] = useState([]);
+    const [lastScrapeTime, setLastScrapeTime] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [newUrl, setNewUrl] = useState('');
+    const [newCategory, setNewCategory] = useState('General Website');
+
+    const fetchUrls = () => {
+        setLoading(true);
+        fetch('/admin/scrape-urls', { headers: { 'Authorization': `Bearer ${token}` } })
+            .then(r => r.json())
+            .then(d => {
+                setUrls(d.urls || []);
+                setLastScrapeTime(d.last_full_scrape_time);
+                setLoading(false);
+            })
+            .catch(e => { console.error(e); setLoading(false); });
+    };
+
+    useEffect(() => { fetchUrls(); }, [token]);
+
+    const handleAdd = async (e) => {
+        e.preventDefault();
+        if (!newUrl.trim()) return;
+        try {
+            const res = await fetch('/admin/scrape-urls', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ url: newUrl, category: newCategory })
+            });
+            if (!res.ok) throw new Error("Failed to add URL");
+            setNewUrl('');
+            fetchUrls();
+        } catch (e) { alert(e.message); }
+    };
+
+    const handleDelete = async (id) => {
+        if (!confirm("Are you sure you want to remove this URL from the scraper list?")) return;
+        try {
+            await fetch(`/admin/scrape-urls/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+            fetchUrls();
+        } catch (e) { alert(e.message); }
+    };
+
+    const handleScrapeNow = async (id) => {
+        try {
+            const res = await fetch(`/admin/scrape-urls/${id}/scrape-now`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+            if (!res.ok) throw new Error("Failed to trigger scrape");
+            alert("Scraping initiated in background. Vector data will update shortly.");
+        } catch (e) { alert(e.message); }
+    };
+
+    return (
+        <div>
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1rem'}}>
+                <h2><i className="fas fa-spider" style={{color:'var(--primary)'}}></i> Web Scraper Management</h2>
+                <button className="btn btn-primary" onClick={fetchUrls}><i className="fas fa-sync"></i> Refresh</button>
+            </div>
+            
+            <div className="stat-card" style={{ marginBottom: '2rem' }}>
+                <h3>Last Full Scheduled Scrape Completed At</h3>
+                <div className="value" style={{ fontSize: '1.2rem', color: 'var(--text-color)' }}>
+                    {lastScrapeTime ? new Date(lastScrapeTime).toLocaleString() : 'Never'}
+                </div>
+            </div>
+
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1.5rem', marginBottom: '2rem' }}>
+                <h3 style={{ marginTop: 0, marginBottom: '1rem', color: 'var(--text-muted)' }}><i className="fas fa-plus"></i> Add New URL</h3>
+                <form onSubmit={handleAdd} style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <input 
+                        type="url" 
+                        placeholder="https://example.com" 
+                        value={newUrl} 
+                        onChange={e => setNewUrl(e.target.value)}
+                        required
+                        style={{ flex: 1, background: 'rgba(0,0,0,0.5)', border: '1px solid var(--border-color)', color: 'white', padding: '0.6rem', borderRadius: '4px', minWidth: '250px' }}
+                    />
+                    <input 
+                        type="text" 
+                        placeholder="Category (e.g. Fees)" 
+                        value={newCategory} 
+                        onChange={e => setNewCategory(e.target.value)}
+                        style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid var(--border-color)', color: 'white', padding: '0.6rem', borderRadius: '4px', minWidth: '150px' }}
+                    />
+                    <button type="submit" className="btn btn-primary"><i className="fas fa-plus"></i> Add URL</button>
+                </form>
+            </div>
+
+            <div style={{ background: 'rgba(0,0,0,0.2)', padding:'1rem', borderRadius: '12px', overflowX: 'auto' }}>
+                <table className="admin-table">
+                    <thead><tr><th>URL</th><th>CATEGORY</th><th>ACTIONS</th></tr></thead>
+                    <tbody>
+                        {loading ? <tr><td colSpan="3" style={{textAlign:'center', padding:'2rem'}}><i className="fas fa-circle-notch fa-spin"></i></td></tr> :
+                         urls.length === 0 ? <tr><td colSpan="3" style={{textAlign:'center', padding:'2rem', opacity:0.5}}>No URLs configured.</td></tr> : urls.map(u => (
+                            <tr key={u.id}>
+                                <td style={{fontWeight:500, wordBreak: 'break-all'}}><a href={u.url} target="_blank" style={{color: 'var(--primary)'}}>{u.url}</a></td>
+                                <td><span style={{ background: 'rgba(255,255,255,0.1)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.85rem' }}>{u.category || 'Uncategorized'}</span></td>
+                                <td style={{whiteSpace: 'nowrap'}}>
+                                    <button className="btn btn-primary" style={{marginRight: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.8rem'}} onClick={() => handleScrapeNow(u.id)} title="Scrape immediately"><i className="fas fa-play"></i> Scrape Now</button>
+                                    <button className="action-btn btn-danger" onClick={() => handleDelete(u.id)} title="Remove URL"><i className="fas fa-trash"></i></button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+}
+
+// ---------------------------
 // THE MAIN ADMIN DASHBOARD
 // ---------------------------
 function AdminDashboard({ user, token, onLogout }) {
@@ -886,6 +999,8 @@ function AdminDashboard({ user, token, onLogout }) {
                 <div className={`admin-nav-item ${tab==='knowledge-gaps'?'active':''}`} onClick={()=>{setTab('knowledge-gaps'); setIsSidebarOpen(false);}}><i className="fas fa-lightbulb"></i> Knowledge Gaps</div>
 
                 <div className={`admin-nav-item ${tab==='documents'?'active':''}`} onClick={()=>{setTab('documents'); setIsSidebarOpen(false);}}><i className="fas fa-database"></i> Vector Documents</div>
+                
+                {isSuper && <div className={`admin-nav-item ${tab==='scraper'?'active':''}`} onClick={()=>{setTab('scraper'); setIsSidebarOpen(false);}}><i className="fas fa-spider"></i> Web Scraper</div>}
                 
                 {isSuper && <div className={`admin-nav-item ${tab==='users'?'active':''}`} onClick={()=>{setTab('users'); setIsSidebarOpen(false);}}>
                     <i className="fas fa-users-cog"></i> Access Control 
@@ -1021,6 +1136,8 @@ function AdminDashboard({ user, token, onLogout }) {
                         )}
                     </div>
                 )}
+
+                {tab === 'scraper' && isSuper && <WebScraperTab token={token} />}
 
                 {tab === 'logs' && isSuper && (
                     <div>

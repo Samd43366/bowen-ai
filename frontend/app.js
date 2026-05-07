@@ -270,9 +270,7 @@ function AuthApp({ onLogin, toggleTheme, isDarkMode }) {
         }
 
         try {
-            const provider = providerType === 'google'
-                ? new window.firebase.auth.GoogleAuthProvider()
-                : new window.firebase.auth.OAuthProvider('apple.com');
+            const provider = new window.firebase.auth.GoogleAuthProvider();
 
             const result = await window.firebase.auth().signInWithPopup(provider);
             const idToken = await result.user.getIdToken();
@@ -387,12 +385,9 @@ function AuthApp({ onLogin, toggleTheme, isDarkMode }) {
                 {(view === 'login' || view === 'register') && (
                     <React.Fragment>
                         <div className="divider">Or continue with</div>
-                        <div style={{ display: 'flex', gap: '1rem' }}>
-                            <button className="btn btn-social" style={{ flex: 1 }} type="button" onClick={() => handleSocialLogin('google')} disabled={loading}>
+                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                            <button className="btn btn-social" style={{ width: '100%' }} type="button" onClick={() => handleSocialLogin('google')} disabled={loading}>
                                 <i className="fab fa-google" style={{ color: '#ea4335' }}></i> Google
-                            </button>
-                            <button className="btn btn-social" style={{ flex: 1 }} type="button" onClick={() => handleSocialLogin('apple')} disabled={loading}>
-                                <i className="fab fa-apple"></i> Apple
                             </button>
                         </div>
                         <div className="toggle-view">

@@ -285,3 +285,36 @@ def update_actionable_link(link_id: str, updates: dict):
 
 def delete_actionable_link(link_id: str):
     db.collection("actionable_links").document(link_id).delete()
+
+# --- SCRAPER URLS ---
+
+def save_scrape_url(url_data: dict):
+    doc_ref = db.collection("scrape_urls").document()
+    url_data["id"] = doc_ref.id
+    url_data["created_at"] = datetime.now(timezone.utc).isoformat()
+    doc_ref.set(url_data)
+    return url_data
+
+def get_all_scrape_urls():
+    docs = db.collection("scrape_urls").stream()
+    result = []
+    for doc in docs:
+        data = doc.to_dict()
+        data["id"] = doc.id
+        result.append(data)
+    return result
+
+def delete_scrape_url(url_id: str):
+    db.collection("scrape_urls").document(url_id).delete()
+
+# --- SYSTEM METADATA ---
+
+def set_system_metadata(key: str, value: any):
+    doc_ref = db.collection("system_metadata").document(key)
+    doc_ref.set({"value": value, "updated_at": datetime.now(timezone.utc).isoformat()})
+
+def get_system_metadata(key: str):
+    doc = db.collection("system_metadata").document(key).get()
+    if doc.exists:
+        return doc.to_dict().get("value")
+    return None
