@@ -15,7 +15,7 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
     
     <!-- Babel for JSX -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
     
     <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -111,6 +111,12 @@
     <div id="root"></div>
 
 <script type="text/babel">
+const safeStorage = {
+    getItem: (key) => { try { return localStorage.getItem(key); } catch (e) { console.warn("Storage access denied:", e); return null; } },
+    setItem: (key, val) => { try { localStorage.setItem(key, val); } catch (e) { console.warn("Storage access denied:", e); } },
+    removeItem: (key) => { try { localStorage.removeItem(key); } catch (e) { console.warn("Storage access denied:", e); } }
+};
+
 const { useState, useEffect, useRef } = React;
 
 function Input({ icon, type, placeholder, name, value, onChange }) {
@@ -239,8 +245,8 @@ function AdminAuthApp({ onLogin }) {
             const data = await res.json();
             if (!res.ok) throw new Error(data.detail || 'Login failed');
             
-            localStorage.setItem('admin_token', data.access_token);
-            localStorage.setItem('bowen_token', data.access_token); // Sync for Chatbot access
+            safeStorage.setItem('admin_token', data.access_token);
+            safeStorage.setItem('bowen_token', data.access_token); // Sync for Chatbot access
             setAlert({ text: data.message || 'Access Granted. Entering Portal...', type: 'success' });
             setTimeout(() => onLogin(data.access_token), 1500);
         } catch (err) {
@@ -1163,7 +1169,7 @@ function AdminDashboard({ user, token, onLogout }) {
 // ROOT MOUNTER
 // ---------------------------
 function Main() {
-    const [token, setToken] = useState(localStorage.getItem('admin_token'));
+    const [token, setToken] = useState(safeStorage.getItem('admin_token'));
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -1172,7 +1178,7 @@ function Main() {
         // Verify token & Role
         fetch('/auth/me', { headers: { 'Authorization': `Bearer ${token}` }})
             .then(r => {
-                if(!r.ok) { localStorage.removeItem('admin_token'); setToken(null); setLoading(false); throw "Bad Token"; }
+                if(!r.ok) { safeStorage.removeItem('admin_token'); setToken(null); setLoading(false); throw "Bad Token"; }
                 return r.json();
             })
             .then(data => {
@@ -1187,8 +1193,8 @@ function Main() {
     }, [token]);
 
     const handleLogout = () => {
-        localStorage.removeItem('admin_token');
-        localStorage.removeItem('bowen_token');
+        safeStorage.removeItem('admin_token');
+        safeStorage.removeItem('bowen_token');
         setToken(null);
         setUser(null);
     };

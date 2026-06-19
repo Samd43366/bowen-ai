@@ -17,7 +17,7 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
 
     <!-- Babel for JSX (Upgraded to v7) -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
 
     <!-- Firebase Compat SDKs (for Social Login) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -307,7 +307,7 @@
                     const data = await res.json();
                     if (!res.ok) throw new Error(data.detail || 'Login failed');
 
-                    localStorage.setItem('bowen_token', data.access_token);
+                    safeStorage.setItem('bowen_token', data.access_token);
                     setAlertMsg({ text: data.message || 'Sign in successful! Entering platform...', type: 'success' });
 
                     setTimeout(() => {
@@ -342,7 +342,7 @@
                     if (data.access_token) {
                         setShowOTP(false);
                         setAlertMsg({ text: data.message || 'Account verified successfully! Logging you in...', type: 'success' });
-                        localStorage.setItem('bowen_token', data.access_token);
+                        safeStorage.setItem('bowen_token', data.access_token);
                         setTimeout(() => {
                             onLogin(data.access_token);
                         }, 1500);
@@ -455,7 +455,7 @@
                         setShowOTP(true);
                         setAlertMsg({ text: data.message, type: 'success' });
                     } else {
-                        localStorage.setItem('bowen_token', data.access_token);
+                        safeStorage.setItem('bowen_token', data.access_token);
                         setAlertMsg({ text: 'Social Login successful! Redirecting...', type: 'success' });
                         setTimeout(() => { onLogin(data.access_token); }, 1000);
                     }
@@ -626,7 +626,7 @@
             const handleSave = async () => {
                 setLoading(true);
                 try {
-                    const token = localStorage.getItem('bowen_token');
+                    const token = safeStorage.getItem('bowen_token');
                     const res = await fetch('/auth/me', {
                         method: 'PUT',
                         headers: {
