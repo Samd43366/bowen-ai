@@ -47,7 +47,7 @@
         }
     </script>
 
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=2">
 
 </head>
 
@@ -478,15 +478,15 @@
                     <div className="glass-card" key={view}>
                         <div className="card-header">
                             <h2 className="card-title">
-                                {view === 'login' ? 'Welcome Back' :
-                                    view === 'register' ? 'Create Account' :
+                                {view === 'login' ? 'Sign In' :
+                                    view === 'register' ? 'Register' :
                                         view === 'forgotPassword' ? 'Reset Password' : 'New Password'}
                             </h2>
                             <p className="card-subtitle">
                                 {view === 'login'
-                                    ? 'Enter your credentials to access Bowen AI'
+                                    ? 'Sign in to your Bowen AI account'
                                     : view === 'register'
-                                        ? 'Join our cutting-edge AI platform today'
+                                        ? 'Create your student or staff account'
                                         : view === 'forgotPassword'
                                             ? 'Enter your email to receive a reset code'
                                             : 'Enter the OTP and your new password'}
@@ -696,8 +696,11 @@
                 <React.Fragment>
                     <div className={`sidebar-overlay ${isOpen ? 'active' : ''}`} onClick={onClose}></div>
                     <div className={`sidebar ${isOpen ? 'open' : 'closed'}`}>
-                        <div className="sidebar-header" style={{ justifyContent: 'space-between' }}>
-                            <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Bowen AI</h2>
+                        <div className="sidebar-header" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div className="brand-seal">B</div>
+                                <h2 style={{ fontSize: '1.25rem', fontWeight: 600, margin: 0, fontFamily: 'var(--font-display)', color: 'var(--brass)' }}>Bowen AI</h2>
+                            </div>
                             <button className="hamburger mobile-only" onClick={onClose}>
                                 <i className="fas fa-xmark"></i>
                             </button>
@@ -980,75 +983,84 @@
                                 <div className="messages-container">
                                     {messages.map((msg, idx) => (
                                         <div key={idx} className={`message-wrapper ${msg.role}`}>
-                                            <div className="message-avatar">
-                                                <i className={`fas ${msg.role === 'ai' ? 'fa-robot' : 'fa-user'}`}></i>
-                                            </div>
-                                            <div
-                                                className="message-content"
-                                                dangerouslySetInnerHTML={{
-                                                    __html: (() => {
-                                                        const content = msg.content || (loading && idx === messages.length - 1 ? "..." : "");
-                                                        if (msg.role === 'ai') {
-                                                            try {
-                                                                const m = window.marked;
-                                                                if (m) {
-                                                                    let rawHtml = "";
-                                                                    if (typeof m.parse === 'function') {
-                                                                        rawHtml = m.parse(content);
-                                                                    } else if (typeof m === 'function') {
-                                                                        rawHtml = m(content);
-                                                                    }
-
-                                                                    // Add security attributes to links
-                                                                    rawHtml = rawHtml.replace(/<a /g, '<a rel="noopener noreferrer" ');
-                                                                    
-                                                                    // SANITIZE EVERYTHING
-                                                                    if (window.DOMPurify) {
-                                                                        return window.DOMPurify.sanitize(rawHtml);
-                                                                    }
-                                                                    return rawHtml;
-                                                                }
-                                                                // Basic URL to link conversion if marked is missing
-                                                                let text = content.replace(/\n/g, '<br/>');
-                                                                text = text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color:var(--primary)">$1</a>');
-                                                                
-                                                                if (window.DOMPurify) {
-                                                                    return window.DOMPurify.sanitize(text);
-                                                                }
-                                                                return text;
-                                                            } catch (e) {
-                                                                console.warn("Markdown parsing failed:", e);
-                                                                return content.replace(/\n/g, '<br/>');
-                                                            }
-                                                        }
-                                                        return content;
-                                                    })()
-                                                }}
-                                            />
-                                            {msg.sources && msg.sources.length > 0 && (
-                                                <div className="message-sources-container" style={{ marginTop: '0.8rem', paddingTop: '0.8rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                                                    <button 
-                                                        onClick={() => toggleSources(idx)}
-                                                        style={{ 
-                                                            background: 'transparent', border: 'none', color: 'var(--text-muted)', 
-                                                            cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: 0
-                                                        }}
-                                                    >
-                                                        <i className={`fas fa-chevron-${expandedSources.has(idx) ? 'up' : 'down'}`}></i>
-                                                        Sources ({msg.sources.length})
-                                                    </button>
-
-                                                    {expandedSources.has(idx) && (
-                                                        <div className="message-sources" style={{ marginTop: '0.8rem', fontSize: '0.8rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                                                            {msg.sources.map((src, i) => (
-                                                                <span key={i} style={{ background: 'rgba(99, 102, 241, 0.1)', color: '#818cf8', padding: '0.2rem 0.6rem', borderRadius: '12px', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
-                                                                    <i className="fas fa-file-pdf" style={{ marginRight: '0.3rem' }}></i>{src}
-                                                                </span>
-                                                            ))}
-                                                        </div>
-                                                    )}
+                                            {msg.role === 'ai' ? (
+                                                <div className="brand-seal" style={{ width: '32px', height: '32px', fontSize: '1rem', border: '1.5px solid var(--brass)' }}>B</div>
+                                            ) : (
+                                                <div className="message-avatar">
+                                                    {user?.full_name?.charAt(0) || 'U'}
                                                 </div>
                                             )}
+                                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                                <div className="message-sender">
+                                                    {msg.role === 'ai' ? 'BOWEN AI' : (user?.full_name || 'Student')}
+                                                </div>
+                                                <div
+                                                    className="message-content"
+                                                    dangerouslySetInnerHTML={{
+                                                        __html: (() => {
+                                                            const content = msg.content || (loading && idx === messages.length - 1 ? "..." : "");
+                                                            if (msg.role === 'ai') {
+                                                                try {
+                                                                    const m = window.marked;
+                                                                    if (m) {
+                                                                        let rawHtml = "";
+                                                                        if (typeof m.parse === 'function') {
+                                                                            rawHtml = m.parse(content);
+                                                                        } else if (typeof m === 'function') {
+                                                                            rawHtml = m(content);
+                                                                        }
+
+                                                                        // Add security attributes to links
+                                                                        rawHtml = rawHtml.replace(/<a /g, '<a rel="noopener noreferrer" ');
+                                                                        
+                                                                        // SANITIZE EVERYTHING
+                                                                        if (window.DOMPurify) {
+                                                                            return window.DOMPurify.sanitize(rawHtml);
+                                                                        }
+                                                                        return rawHtml;
+                                                                    }
+                                                                    // Basic URL to link conversion if marked is missing
+                                                                    let text = content.replace(/\n/g, '<br/>');
+                                                                    text = text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color:var(--primary)">$1</a>');
+                                                                    
+                                                                    if (window.DOMPurify) {
+                                                                        return window.DOMPurify.sanitize(text);
+                                                                    }
+                                                                    return text;
+                                                                } catch (e) {
+                                                                    console.warn("Markdown parsing failed:", e);
+                                                                    return content.replace(/\n/g, '<br/>');
+                                                                }
+                                                            }
+                                                            return content;
+                                                        })()
+                                                    }}
+                                                />
+                                                {msg.sources && msg.sources.length > 0 && (
+                                                    <div style={{ marginTop: '0.8rem', paddingTop: '0.8rem', borderTop: '1px solid var(--line)' }}>
+                                                        <button 
+                                                            onClick={() => toggleSources(idx)}
+                                                            style={{ 
+                                                                background: 'transparent', border: 'none', color: 'var(--text-muted)', 
+                                                                cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: 0
+                                                            }}
+                                                        >
+                                                            <i className={`fas fa-chevron-${expandedSources.has(idx) ? 'up' : 'down'}`}></i>
+                                                            Sources ({msg.sources.length})
+                                                        </button>
+
+                                                        {expandedSources.has(idx) && (
+                                                            <div style={{ marginTop: '0.8rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                                                                {msg.sources.map((src, i) => (
+                                                                    <span key={i} className="source-pill">
+                                                                        <i className="fas fa-file-pdf"></i>{src}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     ))}
                                     <div ref={messagesEndRef} />

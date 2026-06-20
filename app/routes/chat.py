@@ -15,6 +15,23 @@ from datetime import datetime
 from fastapi import Request
 from app.core.rate_limit import limiter
 
+def format_chat_title(question: str, max_len: int = 50) -> str:
+    if len(question) <= max_len:
+        return question
+    truncated = question[:max_len]
+    last_space = truncated.rfind(' ')
+    if last_space > 0:
+        return truncated[:last_space] + "..."
+    return truncated + "..."
+
+def get_unique_title(base_title: str, existing_titles: list) -> str:
+    if base_title not in existing_titles:
+        return base_title
+    counter = 2
+    while f"{base_title} ({counter})" in existing_titles:
+        counter += 1
+    return f"{base_title} ({counter})"
+
 router = APIRouter(prefix="/user", tags=["User"])
 
 
@@ -51,7 +68,10 @@ async def ask_question(
             # Use last 2 messages for slight carry-over context if starting fresh
             history.extend(last_session.get("messages", [])[-2:])
 
-        title = payload.question[:50] + "..." if len(payload.question) > 50 else payload.question
+        existing_titles = [s.get("title") for s in (older_sessions or [])]
+        base_title = format_chat_title(payload.question, max_len=50)
+        title = get_unique_title(base_title, existing_titles)
+        
         session = create_chat_session(user_id, title)
         session_id = session["id"]
     else:
@@ -117,7 +137,11 @@ async def ask_guest_question(request: Request, payload: AskRequest):
         if session:
             history.extend(session.get("messages", [])[-6:])
     else:
-        session = create_chat_session("guest", payload.question[:30])
+        older_sessions = get_user_chat_sessions("guest")
+        existing_titles = [s.get("title") for s in older_sessions]
+        base_title = format_chat_title(payload.question, max_len=30)
+        title = get_unique_title(base_title, existing_titles)
+        session = create_chat_session("guest", title)
         session_id = session["id"]
 
     add_message_to_session(session_id, "user", payload.question)
